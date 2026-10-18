@@ -212,8 +212,8 @@ So the facts Luud knows for certain (where a file lives, whether its app is inst
 4. Tag the commit on `main` and push the tag:
 
 ```sh
-git tag v1.0.0
-git push origin v1.0.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 The workflow checks that the tag matches `Info.plist` and that the changelog has an entry, then publishes the release. To package locally instead, run `./Scripts/package.sh`.
