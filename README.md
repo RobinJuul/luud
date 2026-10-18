@@ -297,11 +297,9 @@ Inside the app, each metric keeps one colour everywhere: CPU cyan, memory violet
 
 ## Contributing
 
-Issues and pull requests are welcome. Before opening a pull request:
+Found a bug or have an idea? [Open an issue](https://github.com/RobinJuul/luud/issues/new). Pull requests aren't accepted from outside contributors, but you're welcome to fork Luud and change it however you like under the [MIT license](LICENSE).
 
-1. `./build.sh --install` and try the screens you changed.
-2. If you changed the interface, regenerate the screenshots with `./Scripts/screenshots.sh`.
-3. If you add a junk location, put it in `JunkRules.swift` with the right disposal: **delete** only for things apps rebuild by themselves, **Trash** for anything a person might want back.
+If you add a junk location in your fork, put it in `JunkRules.swift` with the right disposal: **delete** only for things apps rebuild by themselves, **Trash** for anything a person might want back.
 
 ## License
 
