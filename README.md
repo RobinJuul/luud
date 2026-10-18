@@ -87,6 +87,12 @@ Also included:
 
 Full Xcode is not needed. Check what you have with `xcrun --show-sdk-version`. If it's older than 26, install the latest Command Line Tools from [developer.apple.com/download](https://developer.apple.com/download/all/) or with `softwareupdate`.
 
+### Download
+
+Get **Luud-<version>.dmg** from the [latest release](https://github.com/RobinJuul/luud/releases/latest), open it and drag Luud to Applications. Release builds run on both Apple silicon and Intel. They aren't notarized yet, so the first time you open Luud, allow it under System Settings → Privacy & Security → **Open Anyway**.
+
+Or build it yourself:
+
 ### Build and run
 
 ```sh
@@ -189,12 +195,28 @@ So the facts Luud knows for certain (where a file lives, whether its app is inst
 
 | Path | What it does |
 | --- | --- |
-| [`build.sh`](build.sh) | `swift build -c release`, assembles `Luud.app` (binary, `Info.plist`, icon), signs it ad hoc. `--install` copies it to `~/Applications` and launches it. |
+| [`build.sh`](build.sh) | `swift build -c release`, assembles `Luud.app` (binary, `Info.plist`, icon), signs it ad hoc. `--install` copies it to `~/Applications` and launches it. `--universal` builds for Apple silicon and Intel and joins them with `lipo`. |
 | [`Support/make-icon.swift`](Support/make-icon.swift) | Draws the app icon from vectors at every size (16 px to 1024 px) into an `.iconset` for `iconutil`. Run by `build.sh` when `build/AppIcon.icns` is missing. |
 | [`Scripts/screenshots.sh`](Scripts/screenshots.sh) | Regenerates the README screenshots: launches Luud in staged states and captures its window with `screencapture`. `./Scripts/screenshots.sh menu-bar` captures just one. Needs Screen Recording permission for your terminal. |
 | [`Scripts/window-id.swift`](Scripts/window-id.swift) | Helper for the screenshot script: finds Luud's window number. |
+| [`Scripts/package.sh`](Scripts/package.sh) | Builds a universal `Luud.app` and packages it into `dist/`: a DMG, a zip and `SHA256SUMS`. |
+| [`.github/workflows/release.yml`](.github/workflows/release.yml) | Runs `package.sh` on a macOS 26 runner. A `v*` tag publishes a GitHub Release; a push to a `release/*` branch only builds, as a workflow artifact. |
 | [`Film/`](Film) | The demo video. See below. |
 | [`Design/render-concepts.swift`](Design/render-concepts.swift) | Renders the logo concepts explored before the final icon. |
+
+### Making a release
+
+1. Set `CFBundleShortVersionString` in [`Support/Info.plist`](Support/Info.plist) to the new version and raise `CFBundleVersion` by one.
+2. Add a section for it to [`CHANGELOG.md`](CHANGELOG.md). Its text becomes the release notes.
+3. Optional: push to a `release/<version>` branch and try the package from the workflow run's artifacts.
+4. Tag the commit on `main` and push the tag:
+
+```sh
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The workflow checks that the tag matches `Info.plist` and that the changelog has an entry, then publishes the release. To package locally instead, run `./Scripts/package.sh`.
 
 ### Launch options
 
@@ -247,7 +269,7 @@ Sources/Luud/
 ├── Util/           File sizing, shell and admin commands, formatting
 └── Views/          SwiftUI screens, Theme (colours, corners, motion), Glyph (menu bar star)
 Support/            Info.plist and the icon renderer
-Scripts/            Screenshot automation
+Scripts/            Screenshot automation and release packaging
 Film/               The demo video page and renderer
 Design/             Icon, screenshots, demo video and logo concepts
 ```
@@ -269,7 +291,6 @@ Inside the app, each metric keeps one colour everywhere: CPU cyan, memory violet
 ## Limitations
 
 - **Not notarized** yet, so shared builds need *Open Anyway* the first time.
-- **No universal binary.** `build.sh` builds for the kind of Mac it runs on, Apple silicon or Intel.
 - **Process lists show your own processes.** System processes owned by root can't be inspected without admin rights.
 - **No malware scanning.** macOS's built-in XProtect covers known malware.
 - **No desktop widget yet.** WidgetKit extensions need full Xcode to build.
