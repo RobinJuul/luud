@@ -130,6 +130,19 @@ final class CleanupModel: ObservableObject {
         }
         lastResult = result
         isCleaning = false
+        if result.deleted + result.trashed > 0 {
+            UserDefaults.standard.set(Date(), forKey: Self.lastCleanedDateKey)
+            UserDefaults.standard.set(result.deleted + result.trashed, forKey: Self.lastCleanedBytesKey)
+        }
+    }
+
+    static let lastCleanedDateKey = "lastCleanedDate"
+    static let lastCleanedBytesKey = "lastCleanedBytes"
+
+    /// When Luud last removed something, and how much, across launches.
+    var lastCleaned: (date: Date, bytes: Int64)? {
+        guard let date = UserDefaults.standard.object(forKey: Self.lastCleanedDateKey) as? Date else { return nil }
+        return (date, Int64(UserDefaults.standard.integer(forKey: Self.lastCleanedBytesKey)))
     }
 
     func setAll(_ selected: Bool) {
