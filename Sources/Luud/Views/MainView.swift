@@ -31,6 +31,9 @@ struct MainView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .id(router.selection)
                 .transition(.opacity)
+                // Scroll views only sometimes apply the toolbar inset, so every screen opts out
+                // and PageHeader adds a fixed top margin instead.
+                .ignoresSafeArea(.container, edges: .top)
                 .onPreferenceChange(HeaderActivityKey.self) { headerActive = $0 }
                 .background(alignment: .top) {
                     SectionBackdrop(section: router.selection ?? .smartCare, isActive: headerActive)
@@ -156,6 +159,9 @@ struct SmartCareView: View {
             }
             .padding(.bottom, 28)
             .animation(.spring(response: 0.6, dampingFraction: 0.85), value: cleanup.hasScanned || uninstaller.hasLoaded)
+        }
+        .task {
+            if LaunchOptions.autoScan && LaunchOptions.section == .smartCare && !cleanup.hasScanned { scan() }
         }
         .confirmationDialog("Clean \(Fmt.bytes(cleanup.selectedSize)) of junk?", isPresented: $confirmClean) {
             Button("Clean", role: .destructive) { Task { await cleanup.clean() } }

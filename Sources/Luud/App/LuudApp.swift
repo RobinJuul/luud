@@ -31,6 +31,17 @@ struct LuudApp: App {
         .defaultSize(width: 1160, height: 780)
         .windowStyle(.hiddenTitleBar)
 
+        Window("Luud", id: Router.menuPreviewWindowID) {
+            MenuBarView()
+                .environmentObject(stats)
+                .environmentObject(router)
+                .ignoresSafeArea()
+                .onAppear(perform: hidePreviewWindowButtons)
+        }
+        .windowResizability(.contentSize)
+        .windowStyle(.hiddenTitleBar)
+        .defaultLaunchBehavior(.suppressed)
+
         MenuBarExtra {
             MenuBarView()
                 .environmentObject(stats)
@@ -39,6 +50,18 @@ struct LuudApp: App {
             MenuBarLabel(stats: stats, router: router)
         }
         .menuBarExtraStyle(.window)
+    }
+}
+
+/// The menu panel preview should look like the real panel, without window buttons.
+@MainActor
+private func hidePreviewWindowButtons() {
+    DispatchQueue.main.async {
+        for window in NSApp.windows where window.identifier?.rawValue.hasPrefix(Router.menuPreviewWindowID) == true {
+            for button in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] {
+                window.standardWindowButton(button)?.isHidden = true
+            }
+        }
     }
 }
 
@@ -114,8 +137,9 @@ enum AppSection: String, CaseIterable, Identifiable {
 final class Router: ObservableObject {
     static let shared = Router()
     static let mainWindowID = "main"
+    static let menuPreviewWindowID = "menu-preview"
 
-    @Published var selection: AppSection? = .smartCare
+    @Published var selection: AppSection? = LaunchOptions.section ?? .smartCare
     /// Captured from the always-present menu bar label so the window can be opened from anywhere.
     var openWindowAction: OpenWindowAction?
 

@@ -42,6 +42,9 @@ struct CleanupView: View {
                 .scrollContentBackground(.hidden)
             }
         }
+        .task {
+            if LaunchOptions.autoScan && LaunchOptions.section == .cleanup && !model.hasScanned { await model.scan() }
+        }
         .confirmationDialog("Clean \(Fmt.bytes(model.selectedSize))?", isPresented: $confirmClean) {
             Button("Clean", role: .destructive) {
                 dismissedResult = false

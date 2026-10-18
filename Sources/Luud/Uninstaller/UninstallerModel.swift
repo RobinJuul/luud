@@ -31,6 +31,10 @@ final class UninstallerModel: ObservableObject {
         apps = await Task.detached { AppCatalog.installedApps() }.value
         isLoading = false
         hasLoaded = true
+        if let id = LaunchOptions.uninstallerApp, let app = apps.first(where: { $0.bundleID == id }) {
+            selection = app.id
+            loadLeftovers()
+        }
 
         // Sizes take a while for big apps; fill them in as they arrive.
         await withTaskGroup(of: (URL, Int64).self) { group in

@@ -36,6 +36,12 @@ struct SpaceLensView: View {
                 .padding(.bottom, 16)
             }
         }
+        .task {
+            if !hasStarted, let root = LaunchOptions.spaceLensRoot {
+                hasStarted = true
+                model.start(at: root)
+            }
+        }
         .confirmationDialog("Move \(pendingTrash?.name ?? "") to the Trash?",
                             isPresented: Binding(get: { pendingTrash != nil }, set: { if !$0 { pendingTrash = nil } })) {
             Button("Move to Trash", role: .destructive) {
@@ -90,7 +96,8 @@ struct SpaceLensView: View {
 
     private var list: some View {
         let largest = Double(model.nodes.first?.size ?? 1)
-        return List(model.nodes) { node in
+        return ScrollViewReader { proxy in
+        List(model.nodes) { node in
             HStack(spacing: 10) {
                 Image(nsImage: IconCache.icon(for: node.url)).resizable().frame(width: 22, height: 22)
                 VStack(alignment: .leading, spacing: 4) {
@@ -113,6 +120,11 @@ struct SpaceLensView: View {
             }
         }
         .listStyle(.bordered)
+        // Rows arrive sorted by size and insert above the visible ones; jump back to the biggest.
+        .onChange(of: model.isLoading) { _, loading in
+            if !loading, let first = model.nodes.first { proxy.scrollTo(first.id, anchor: .top) }
+        }
+        }
     }
 
     private func color(for node: SizedNode) -> Color {

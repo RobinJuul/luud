@@ -24,7 +24,7 @@ struct MenuBarLabel: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: "sparkles")
+            Image(nsImage: Glyph.menuBar)
             switch MenuBarMode(rawValue: mode) ?? .cpuAndMemory {
             case .cpuAndMemory: Text("\(Fmt.percent(stats.cpu))  \(Fmt.percent(stats.memoryFraction))")
             case .cpu: Text(Fmt.percent(stats.cpu))
@@ -34,7 +34,10 @@ struct MenuBarLabel: View {
             }
         }
         .monospacedDigit()
-        .onAppear { router.openWindowAction = openWindow }
+        .onAppear {
+            router.openWindowAction = openWindow
+            if LaunchOptions.menuPreview { openWindow(id: Router.menuPreviewWindowID) }
+        }
     }
 }
 
@@ -197,7 +200,9 @@ private struct GaugeRow<Graph: View>: View {
             Text(title).font(.callout).frame(width: 66, alignment: .leading)
             graph.frame(height: 20)
             LiveValue(text: value, value: numeric, size: 13, weight: .semibold)
-                .frame(width: 82, alignment: .trailing)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(width: 96, alignment: .trailing)
         }
     }
 }

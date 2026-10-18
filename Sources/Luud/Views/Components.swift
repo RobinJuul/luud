@@ -141,7 +141,7 @@ struct PageHeader<Trailing: View>: View {
             trailing
         }
         .padding(.horizontal, 28)
-        .padding(.top, 20)
+        .padding(.top, 72)
         .padding(.bottom, 18)
         .frame(maxWidth: .infinity, alignment: .leading)
         // The backdrop itself lives behind the detail column (see MainView) so it can reach

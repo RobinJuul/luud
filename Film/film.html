@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Luud — product film</title>
+<style>
+  /* SF Pro Rounded ships with macOS; the film is rendered on a Mac. */
+  @font-face { font-family: "Rounded"; src: url("file:///System/Library/Fonts/SFNSRounded.ttf"); font-weight: 100 1000; }
+
+  :root {
+    --cpu: #22c2e6; --memory: #8c5cf5; --disk: #f5a624; --network: #33d499; --upload: #5c9eff;
+    --pink: #ff4d8c; --violet: #7a5cff; --amber: #fa9e33; --danger: #ff5454;
+    --window: #232129; --panel: rgba(255, 255, 255, 0.055); --line: rgba(255, 255, 255, 0.08);
+    --text: #f4f2f8; --muted: rgba(244, 242, 248, 0.6); --faint: rgba(244, 242, 248, 0.38);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0b0816; }
+  #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; color: var(--text);
+           font: 400 26px/1.3 system-ui, -apple-system, sans-serif; background: #0e0a1c; }
+  .rounded { font-family: "Rounded", system-ui, sans-serif; }
+
+  /* Background: soft color fields that drift, standing in for the app's mesh backdrop. */
+  #bg { position: absolute; inset: 0; }
+  .blob { position: absolute; width: 1500px; height: 1500px; border-radius: 50%; left: -750px; top: -750px; }
+  #blobA { background: radial-gradient(closest-side, rgba(255, 77, 140, 0.42), rgba(255, 77, 140, 0)); }
+  #blobB { background: radial-gradient(closest-side, rgba(122, 92, 255, 0.45), rgba(122, 92, 255, 0)); }
+  #blobC { background: radial-gradient(closest-side, rgba(250, 158, 51, 0.30), rgba(250, 158, 51, 0)); }
+  #vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, transparent 40%, rgba(5, 3, 12, 0.75)); }
+
+  #world { position: absolute; left: 0; top: 0; width: 13440px; height: 1080px; }
+  .scene { position: absolute; top: 0; width: 1920px; height: 1080px; }
+
+  /* Captions: one large claim, one supporting line. */
+  .caption { position: absolute; left: 130px; top: 360px; width: 720px; }
+  .caption h2 { margin: 0 0 26px; font: 900 104px/0.98 "Rounded", system-ui; letter-spacing: -2px; }
+  .caption p { margin: 0; font-size: 34px; line-height: 1.35; color: var(--muted); max-width: 640px; }
+
+  .window { position: absolute; background: var(--window); border-radius: 30px;
+            border: 1px solid var(--line); box-shadow: 0 40px 120px rgba(0, 0, 0, 0.55); overflow: hidden; }
+  .card { background: var(--panel); border-radius: 26px; padding: 24px; }
+  .row { display: flex; align-items: center; gap: 16px; }
+  .muted { color: var(--muted); } .faint { color: var(--faint); }
+  .num { font-family: "Rounded", system-ui; font-variant-numeric: tabular-nums; font-weight: 800; }
+  .bar { position: relative; height: 10px; border-radius: 5px; overflow: hidden; }
+  .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; }
+  .check { width: 30px; height: 30px; border-radius: 8px; border: 2px solid rgba(255, 255, 255, 0.25); flex: none;
+           display: grid; place-items: center; }
+  .check.on { background: #2f7bf6; border-color: #2f7bf6; }
+  .check svg { width: 20px; height: 20px; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 999px;
+          background: rgba(255, 77, 140, 0.16); color: var(--pink); font-weight: 650; font-size: 22px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; padding: 14px 26px; border-radius: 14px;
+         background: rgba(255, 255, 255, 0.1); font-weight: 600; }
+
+  /* Menu bar scene */
+  #menubar { position: absolute; left: 0; right: 0; top: 0; height: 54px; background: rgba(30, 26, 44, 0.75);
+             border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: flex-end;
+             gap: 34px; padding: 0 40px; font-size: 24px; font-weight: 500; }
+  #menubar .glyph { display: flex; align-items: center; gap: 10px; padding: 4px 12px; border-radius: 8px; background: rgba(255,255,255,0.14); }
+  #panel { left: 1140px; top: 78px; width: 560px; padding: 30px; border-radius: 30px; }
+  .gauge { display: grid; grid-template-columns: 34px 120px 1fr 150px; align-items: center; gap: 14px; height: 52px; font-size: 25px; }
+  .gauge .val { text-align: right; font-size: 25px; }
+  .spark { width: 100%; height: 34px; }
+
+  /* Smart Care */
+  #care { position: absolute; left: 930px; top: 150px; width: 880px; height: 780px; }
+  #orb { position: absolute; left: 290px; top: 90px; width: 300px; height: 300px; border-radius: 50%; overflow: hidden; }
+  #orb .layer { position: absolute; inset: -40%; }
+  #orbGlow { position: absolute; left: 230px; top: 30px; width: 420px; height: 420px; border-radius: 50%;
+             background: radial-gradient(closest-side, rgba(255, 77, 140, 0.55), rgba(255, 77, 140, 0)); }
+  #orbLabel { position: absolute; left: 290px; top: 90px; width: 300px; height: 300px; display: grid; place-items: center; text-align: center; }
+  #sweep { position: absolute; left: 300px; top: 100px; width: 280px; height: 280px; }
+  .finding { position: absolute; width: 400px; height: 150px; }
+  .finding .icon { width: 56px; height: 56px; border-radius: 14px; display: grid; place-items: center; flex: none; }
+  .finding .icon svg { width: 30px; height: 30px; }
+
+  /* System Junk */
+  #junk { left: 900px; top: 120px; width: 920px; height: 840px; padding: 34px 30px; }
+  .junkrow { display: grid; grid-template-columns: 30px 40px 1fr auto 130px; gap: 18px; align-items: center; height: 82px;
+             border-bottom: 1px solid var(--line); font-size: 25px; }
+  .folder { width: 38px; height: 30px; border-radius: 6px; background: linear-gradient(#6fc3ff, #3c9cf0); }
+  #popover { left: 1210px; top: 380px; width: 610px; padding: 30px; border-radius: 26px; background: #2e2b36; }
+  #cursor { position: absolute; width: 40px; height: 40px; left: 0; top: 0; }
+
+  /* Uninstaller */
+  #uninst { left: 900px; top: 120px; width: 920px; height: 840px; padding: 36px; }
+  .appicon { width: 110px; height: 110px; border-radius: 26px; display: grid; place-items: center; }
+  .leftrow { display: grid; grid-template-columns: 30px 1fr 140px; gap: 18px; align-items: center; height: 68px;
+             border-bottom: 1px solid var(--line); font-size: 24px; }
+  #freed { position: absolute; left: 0; right: 0; top: 520px; text-align: center; }
+
+  /* Space Lens */
+  #lens { position: absolute; left: 880px; top: 150px; width: 960px; height: 780px; }
+  .lensrow { display: grid; grid-template-columns: 1fr 140px; gap: 6px 18px; align-items: center; margin-bottom: 22px; font-size: 25px; }
+  .lensrow .bar { grid-column: 1 / 3; height: 8px; }
+
+  .center { position: absolute; left: 0; right: 0; text-align: center; }
+  #title { top: 640px; font: 900 190px/1 "Rounded", system-ui; letter-spacing: -4px; }
+  #subtitle { top: 850px; font-size: 40px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg"><div class="blob" id="blobA"></div><div class="blob" id="blobB"></div><div class="blob" id="blobC"></div></div>
+  <div id="vignette"></div>
+
+  <div id="world">
+    <!-- 0 Intro -->
+    <section class="scene" style="left:0">
+      <svg id="star" viewBox="0 0 1024 1024" style="position:absolute;left:660px;top:70px;width:600px;height:600px"></svg>
+    </section>
+
+    <!-- 1 Menu bar -->
+    <section class="scene" style="left:1920px">
+      <div id="menubar">
+        <span class="glyph"><svg id="glyph" viewBox="0 0 16 16" width="24" height="24"></svg><span class="num" style="font-weight:600">18%&nbsp;&nbsp;65%</span></span>
+        <span>Sat 18 Oct&nbsp;&nbsp;09:41</span>
+      </div>
+      <div class="window" id="panel">
+        <div class="row" style="gap:24px;margin-bottom:22px">
+          <svg id="miniRings" viewBox="0 0 120 120" width="110" height="110"></svg>
+          <div style="flex:1">
+            <div class="row" style="justify-content:space-between"><b class="rounded" style="font-size:28px">Luud</b><span class="faint" style="font-size:21px">up 3d 4h</span></div>
+            <div class="row" style="gap:30px;margin-top:6px">
+              <div><div class="num" style="font-size:34px;color:var(--cpu)" data-count="cpuPct">18%</div><div class="muted" style="font-size:19px">CPU</div></div>
+              <div><div class="num" style="font-size:34px;color:var(--memory)">65%</div><div class="muted" style="font-size:19px">Memory</div></div>
+              <div><div class="num" style="font-size:34px;color:var(--disk)">57%</div><div class="muted" style="font-size:19px">Disk</div></div>
+            </div>
+          </div>
+        </div>
+        <div id="gauges"></div>
+        <div class="muted" style="font-size:20px;font-weight:600;margin:20px 0 10px">Busiest right now</div>
+        <div id="procs"></div>
+      </div>
+      <div class="caption" id="cap1"><h2>Your Mac, live.</h2><p>CPU, memory, network, disk and battery, one click away in the menu bar.</p></div>
+    </section>
+
+    <!-- 2 Smart Care -->
+    <section class="scene" style="left:3840px">
+      <div id="care">
+        <div id="orbGlow"></div>
+        <div id="orb">
+          <div class="layer" id="orbA" style="background:radial-gradient(circle at 30% 30%, #ff4d8c, transparent 55%)"></div>
+          <div class="layer" id="orbB" style="background:radial-gradient(circle at 70% 60%, #7a5cff, transparent 55%)"></div>
+          <div class="layer" id="orbC" style="background:radial-gradient(circle at 45% 75%, #fa9e33, transparent 50%)"></div>
+          <div class="layer" style="background:rgba(255,255,255,0.06)"></div>
+        </div>
+        <svg id="sweep" viewBox="0 0 280 280"></svg>
+        <div id="orbLabel"><div><div class="num" id="orbValue" style="font-size:58px">Scan</div><div id="orbHint" style="font-size:24px;font-weight:600;opacity:0">Click to review</div></div></div>
+        <div id="findings"></div>
+      </div>
+      <div class="caption" id="cap2"><h2>One scan.</h2><p>Junk, apps you never open, and what's filling your disk, found in seconds.</p></div>
+    </section>
+
+    <!-- 3 System Junk + Explain -->
+    <section class="scene" style="left:5760px">
+      <div class="window" id="junk">
+        <div class="row" style="justify-content:space-between;margin-bottom:16px">
+          <div><div class="rounded" style="font-size:40px;font-weight:900">System Junk</div><div class="muted" style="font-size:22px">4.82 GB found, review before anything is removed</div></div>
+          <span class="btn" style="background:#2f7bf6">Clean <span class="num" data-count="junkSel" style="margin-left:8px">0 MB</span></span>
+        </div>
+        <div class="row" style="height:80px;border-bottom:1px solid var(--line)">
+          <div style="width:30px"></div>
+          <div style="flex:1"><b style="font-size:27px">User Caches</b><div class="muted" style="font-size:20px">Temporary files apps rebuild automatically</div></div>
+          <div style="text-align:right"><div class="num" style="font-size:28px">3.10 GB</div><div class="faint" style="font-size:19px">18 items</div></div>
+        </div>
+        <div id="junkRows"></div>
+      </div>
+      <div class="window" id="popover">
+        <div class="row" style="gap:12px;margin-bottom:18px"><span style="color:var(--pink);font-size:28px">✦</span><b style="font-size:26px">com.figma.Desktop</b></div>
+        <div id="thinking" class="row muted" style="gap:14px"><svg id="spinner" viewBox="0 0 40 40" width="30" height="30"></svg>Thinking on-device…</div>
+        <div id="answer" style="font-size:25px;line-height:1.45;min-height:150px"></div>
+        <div id="verdict" class="pill" style="background:rgba(51,212,153,0.16);color:var(--network);margin-top:16px;opacity:0">✓ Safe to delete</div>
+        <div class="faint" style="font-size:18px;margin-top:18px" id="disclaimer">Generated on this Mac by Apple Intelligence.</div>
+      </div>
+      <svg id="cursor" viewBox="0 0 40 40"><path d="M6 3 L6 33 L14 25 L20 38 L25 36 L19 23 L30 23 Z" fill="#fff" stroke="#000" stroke-width="2" stroke-linejoin="round"/></svg>
+      <div class="caption" id="cap3"><h2>Ask before you delete.</h2><p>Apple Intelligence explains any file or folder, on your Mac. Nothing leaves it.</p></div>
+    </section>
+
+    <!-- 4 Uninstaller -->
+    <section class="scene" style="left:7680px">
+      <div class="window" id="uninst">
+        <div class="row" style="gap:26px">
+          <div class="appicon" style="background:linear-gradient(135deg,#3ad1c8,#2f7bf6)"><svg viewBox="0 0 60 60" width="64" height="64"><path d="M10 18c0-5 4-9 9-9h22c5 0 9 4 9 9v14c0 5-4 9-9 9H27l-11 9v-9c-3-1-6-4-6-8z" fill="#fff"/></svg></div>
+          <div><div class="rounded" style="font-size:44px;font-weight:900">Orbit Chat</div><div class="muted" style="font-size:22px">Version 4.2.1 · Last opened 8 months ago</div></div>
+        </div>
+        <div class="row" style="justify-content:space-between;margin:34px 0 8px;font-size:26px"><b>App bundle</b><span class="num">612 MB</span></div>
+        <div class="row" style="justify-content:space-between;margin-bottom:12px;font-size:26px"><b>Related files</b><span class="num">1.79 GB</span></div>
+        <div id="leftRows" style="position:relative"></div>
+        <div id="freed"><div class="num" style="font-size:96px;color:var(--network)" data-count="freed">0 GB</div><div class="muted" style="font-size:28px">moved to the Trash</div></div>
+        <div class="row" style="position:absolute;left:36px;right:36px;bottom:36px;justify-content:space-between">
+          <span class="btn">Show in Finder</span><span class="btn" id="uninstallBtn" style="background:var(--danger)">Uninstall Orbit Chat</span>
+        </div>
+      </div>
+      <svg id="cursor2" viewBox="0 0 40 40" style="position:absolute;width:40px;height:40px"><path d="M6 3 L6 33 L14 25 L20 38 L25 36 L19 23 L30 23 Z" fill="#fff" stroke="#000" stroke-width="2" stroke-linejoin="round"/></svg>
+      <div class="caption" id="cap4"><h2>Gone means gone.</h2><p>Apps scatter files across your Library. Luud finds them and removes them with the app.</p></div>
+    </section>
+
+    <!-- 5 Space Lens -->
+    <section class="scene" style="left:9600px">
+      <div id="lens">
+        <svg id="donut" viewBox="0 0 400 400" style="position:absolute;left:0;top:120px;width:420px;height:420px"></svg>
+        <div style="position:absolute;left:0;top:120px;width:420px;height:420px;display:grid;place-items:center;text-align:center">
+          <div><div class="num" style="font-size:42px" data-count="lensTotal">0 GB</div><div class="muted" style="font-size:22px">Home folder</div></div>
+        </div>
+        <div id="lensRows" style="position:absolute;left:480px;top:60px;width:480px"></div>
+      </div>
+      <div class="caption" id="cap5"><h2>See where the space went.</h2><p>Space Lens maps every folder by size. Click in to find what's big.</p></div>
+    </section>
+
+    <!-- 6 Outro -->
+    <section class="scene" style="left:11520px">
+      <svg id="star2" viewBox="0 0 1024 1024" style="position:absolute;left:760px;top:120px;width:400px;height:400px"></svg>
+      <div class="center rounded" style="top:560px;font-size:150px;font-weight:900;letter-spacing:-3px" id="outroTitle">Luud</div>
+      <div class="center" style="top:740px;font-size:38px" id="outroLine1">Free and open source · MIT licence</div>
+      <div class="center muted" style="top:806px;font-size:32px" id="outroLine2">github.com/RobinJuul/luud</div>
+    </section>
+  </div>
+
+  <!-- Intro type sits above the world so the camera can leave it behind. -->
+  <div class="center" id="title">Luud</div>
+  <div class="center" id="subtitle">Estonian for broom. A Mac cleaner and live system monitor.</div>
+</div>
+
+<script src="node_modules/gsap/dist/gsap.min.js"></script>
+<script>
+// ---------- helpers ----------
+const $ = (s) => document.querySelector(s)
+const NS = 'http://www.w3.org/2000/svg'
+const svg = (tag, attrs, parent) => {
+  const el = document.createElementNS(NS, tag)
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v)
+  if (parent) parent.appendChild(el)
+  return el
+}
+// Seeded random so every render draws the same graphs.
+let seed = 7
+const rand = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed)
+  t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296 }
+const fmtGB = (mb) => mb >= 1000 ? (mb / 1000).toFixed(2) + ' GB' : Math.round(mb) + ' MB'
+
+function petal(cx, cy, a, inner, outer, w) {
+  const mid = (inner + outer) / 2
+  const pt = (r, side) => [cx + r * Math.cos(a) - side * Math.sin(a), cy + r * Math.sin(a) + side * Math.cos(a)]
+  return [pt(inner, 0), pt(mid, w), pt(outer, 0), pt(mid, -w)].map((p) => p.join(',')).join(' ')
+}
+
+// ---------- the kaheksakand star (same geometry as the app icon) ----------
+function buildStar(el, idPrefix) {
+  const defs = svg('defs', {}, el)
+  const g = svg('linearGradient', { id: idPrefix + 'g', x1: '0.2', y1: '0.15', x2: '0.8', y2: '0.85' }, defs)
+  ;[['0', '#fa9e33'], ['0.5', '#ff4d8c'], ['1', '#7a5cff']].forEach(([o, c]) => svg('stop', { offset: o, 'stop-color': c }, g))
+  const petals = []
+  for (let k = 0; k < 8; k++) {
+    const a = -Math.PI / 2 + k * Math.PI / 4
+    petals.push(svg('polygon', { points: petal(512, 512, a, 92, 318, 58), fill: `url(#${idPrefix}g)`,
+      stroke: `url(#${idPrefix}g)`, 'stroke-width': 18, 'stroke-linejoin': 'round', 'transform-origin': '512 512' }, el))
+  }
+  const core = svg('polygon', { points: petal(512, 512, -Math.PI / 2, -52, 52, 52), fill: '#fff', stroke: '#fff',
+    'stroke-width': 12, 'stroke-linejoin': 'round', 'transform-origin': '512 512' }, el)
+  return { petals, core }
+}
+const star = buildStar($('#star'), 's1')
+const star2 = buildStar($('#star2'), 's2')
+// Menu bar glyph
+for (let k = 0; k < 8; k++) svg('polygon', { points: petal(8, 8, -Math.PI / 2 + k * Math.PI / 4, 3.2, 8, 1.8), fill: '#fff' }, $('#glyph'))
+svg('polygon', { points: petal(8, 8, -Math.PI / 2, -2, 2, 2), fill: '#fff' }, $('#glyph'))
+
+// ---------- rings ----------
+function ring(parent, cx, r, width, color, value) {
+  const c = 2 * Math.PI * r
+  svg('circle', { cx, cy: cx, r, fill: 'none', stroke: color, 'stroke-opacity': 0.16, 'stroke-width': width }, parent)
+  return svg('circle', { cx, cy: cx, r, fill: 'none', stroke: color, 'stroke-width': width, 'stroke-linecap': 'round',
+    'stroke-dasharray': `${c} ${c}`, 'stroke-dashoffset': c, transform: `rotate(-90 ${cx} ${cx})`, 'data-c': c, 'data-v': value }, parent)
+}
+const mini = $('#miniRings')
+const miniRings = [ring(mini, 60, 52, 12, '#22c2e6', 0.18), ring(mini, 60, 36, 12, '#8c5cf5', 0.65), ring(mini, 60, 20, 12, '#f5a624', 0.57)]
+
+// ---------- menu panel gauges ----------
+const gaugeDefs = [
+  ['cpu', 'CPU', '#22c2e6', 'spark', '18%'], ['memory', 'Memory', '#8c5cf5', 'spark', '15.6 GB'],
+  ['down', 'Download', '#33d499', 'spark', '2.4 MB/s'], ['up', 'Upload', '#5c9eff', 'spark', '310 KB/s'],
+  ['disk', 'Disk', '#f5a624', 0.57, '212 GB free'], ['battery', 'Battery', '#33d499', 0.84, '84%'],
+]
+const sparkPaths = []
+for (const [id, name, color, kind, value] of gaugeDefs) {
+  const row = document.createElement('div'); row.className = 'gauge'
+  row.innerHTML = `<svg viewBox="0 0 24 24" width="28" height="28"><circle cx="12" cy="12" r="9" fill="none" stroke="${color}" stroke-width="2.5"/></svg>
+    <span>${name}</span><div class="graph"></div><span class="val num">${value}</span>`
+  $('#gauges').appendChild(row)
+  const graph = row.querySelector('.graph')
+  if (kind === 'spark') {
+    const s = svg('svg', { viewBox: '0 0 240 40', preserveAspectRatio: 'none', class: 'spark' }, graph)
+    let y = 22, pts = []
+    for (let i = 0; i <= 60; i++) { y = Math.min(36, Math.max(6, y + (rand() - 0.5) * 9)); pts.push([i * 4, y]) }
+    const d = 'M' + pts.map((p) => p.join(',')).join(' L')
+    svg('path', { d: d + ' L240,40 L0,40 Z', fill: color, 'fill-opacity': 0.18 }, s)
+    const line = svg('path', { d, fill: 'none', stroke: color, 'stroke-width': 2.5, 'stroke-linecap': 'round' }, s)
+    const len = 400; line.setAttribute('stroke-dasharray', len); line.setAttribute('stroke-dashoffset', len)
+    sparkPaths.push(line)
+    const clip = svg('clipPath', { id: 'clip' + id }, s); const r = svg('rect', { x: 0, y: 0, width: 0, height: 40 }, clip)
+    s.querySelector('path').setAttribute('clip-path', `url(#clip${id})`); sparkPaths.push(r)
+  } else {
+    graph.innerHTML = `<div class="bar" style="background:${color}29"><i style="background:${color};width:0" data-w="${kind * 100}%"></i></div>`
+  }
+}
+const procs = [['Final Cut Pro', 0.41, '#8c5cf5'], ['Safari', 0.22, '#22c2e6'], ['Xcode', 0.14, '#5c9eff'], ['Orbit Chat Helper', 0.06, '#33d499']]
+for (const [name, cpu, color] of procs) {
+  const r = document.createElement('div'); r.className = 'row'; r.style.cssText = 'height:50px;font-size:23px'
+  r.innerHTML = `<span style="width:28px;height:28px;border-radius:7px;background:${color};flex:none"></span>
+    <div style="flex:1"><div>${name}</div><div class="bar" style="height:5px;margin-top:5px;background:rgba(34,194,230,0.15)"><i style="background:var(--cpu);width:0" data-w="${cpu * 100}%"></i></div></div>
+    <span class="num muted" style="width:70px;text-align:right">${Math.round(cpu * 100)}%</span>`
+  $('#procs').appendChild(r)
+}
+
+// ---------- Smart Care ----------
+const sweepCirc = svg('circle', { cx: 140, cy: 140, r: 134, fill: 'none', stroke: '#fff', 'stroke-width': 6,
+  'stroke-linecap': 'round', 'stroke-dasharray': '180 662', opacity: 0, 'transform-origin': '140 140' }, $('#sweep'))
+const icons = {
+  trash: '<path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  app: '<rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 9l6 6M15 9l-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  disk: '<rect x="3" y="7" width="18" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="12" r="1.4" fill="currentColor"/>',
+  chip: '<rect x="6" y="6" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+}
+const findings = [
+  ['trash', '#33d499', 'Junk', '4.82 GB', 'found, ready to review', 0, 470],
+  ['app', '#f5a624', 'Unused apps', '7', 'not opened in six months', 450, 470],
+  ['disk', '#8c5cf5', 'Startup disk', '212 GB free', '57% used', 0, 640],
+  ['chip', '#22c2e6', 'Memory', '65%', 'Final Cut Pro uses the most', 450, 640],
+]
+for (const [icon, color, title, value, detail, x, y] of findings) {
+  const f = document.createElement('div'); f.className = 'finding card'; f.style.left = x + 'px'; f.style.top = y + 'px'
+  f.innerHTML = `<div class="row" style="align-items:flex-start;gap:18px"><div class="icon" style="background:${color}26;color:${color}"><svg viewBox="0 0 24 24">${icons[icon]}</svg></div>
+    <div><div class="muted" style="font-size:21px">${title}</div><div class="num" style="font-size:38px">${value}</div><div class="muted" style="font-size:20px">${detail}</div></div></div>`
+  $('#findings').appendChild(f)
+}
+
+// ---------- System Junk ----------
+const junkRows = [
+  ['com.figma.Desktop', 642, true, ''], ['com.spotify.client', 1240, false, 'App is running — quit it first'],
+  ['us.zoom.xos', 488, true, ''], ['com.apple.Music', 311, true, ''], ['io.ferry.sync', 207, true, ''],
+]
+const checkSVG = '<svg viewBox="0 0 20 20"><path d="M4 10.5l4 4 8-9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+for (const [name, mb, on, note] of junkRows) {
+  const r = document.createElement('div'); r.className = 'junkrow'
+  r.innerHTML = `<div class="check" data-on="${on}">${checkSVG}</div><div class="folder"></div>
+    <div><div>${name}</div>${note ? `<div class="muted" style="font-size:19px">${note}</div>` : ''}</div>
+    <span class="pill">✦ Explain</span><span class="num" style="text-align:right">${fmtGB(mb)}</span>`
+  $('#junkRows').appendChild(r)
+}
+document.querySelectorAll('.check').forEach((c) => { c.querySelector('svg').style.opacity = 0 })
+const spinner = $('#spinner')
+for (let i = 0; i < 8; i++) svg('rect', { x: 18.5, y: 3, width: 3, height: 9, rx: 1.5, fill: '#fff', opacity: 0.2 + i * 0.1, transform: `rotate(${i * 45} 20 20)` }, spinner)
+const answerText = "This is Figma's cache folder. It holds temporary copies of files and images, and Figma rebuilds it automatically the next time you open it."
+
+// ---------- Uninstaller ----------
+const leftovers = [['~/Library/Application Support/Orbit Chat', '1.21 GB'], ['~/Library/Caches/com.orbit.chat', '486 MB'],
+  ['~/Library/Containers/com.orbit.chat.share', '98 MB'], ['~/Library/Preferences/com.orbit.chat.plist', '4 KB'],
+  ['~/Library/Saved Application State/com.orbit.chat.savedState', '12 KB']]
+for (const [path, size] of leftovers) {
+  const r = document.createElement('div'); r.className = 'leftrow'
+  r.innerHTML = `<div class="check on">${checkSVG}</div><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${path}</span><span class="num" style="text-align:right">${size}</span>`
+  $('#leftRows').appendChild(r)
+}
+
+// ---------- Space Lens ----------
+const lens = [['Library', 96.4, '#8c5cf5'], ['Movies', 71.2, '#ff4d8c'], ['Developer', 48.9, '#f5a624'], ['Documents', 38.1, '#22c2e6'],
+  ['Pictures', 29.7, '#33d499'], ['Downloads', 16.8, '#5c9eff'], ['Music', 7.3, '#e6c84a'], ['Other', 4.2, '#8a8794']]
+const lensTotal = lens.reduce((a, b) => a + b[1], 0)
+let angle = -90
+const sectors = []
+for (const [name, gb, color] of lens) {
+  const sweep = gb / lensTotal * 360
+  const r = 150, c = 2 * Math.PI * r, len = Math.max(0, sweep / 360 * c - 6)
+  sectors.push(svg('circle', { cx: 200, cy: 200, r, fill: 'none', stroke: color, 'stroke-width': 64,
+    'stroke-dasharray': `0 ${c}`, transform: `rotate(${angle} 200 200)`, 'data-len': len, 'data-c': c }, $('#donut')))
+  angle += sweep
+  if (name !== 'Other') {
+    const row = document.createElement('div'); row.className = 'lensrow'
+    row.innerHTML = `<span>${name}</span><span class="num" style="text-align:right">${gb.toFixed(1)} GB</span>
+      <div class="bar" style="background:${color}26"><i style="background:${color};width:0" data-w="${gb / 96.4 * 100}%"></i></div>`
+    $('#lensRows').appendChild(row)
+  }
+}
+
+// ---------- timeline ----------
+const tl = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } })
+const counters = {}
+const count = (key, el, to, fmt, at, duration = 1.4) => {
+  counters[key] = { v: 0 }
+  tl.to(counters[key], { v: to, duration, ease: 'power2.out',
+    onUpdate: () => { el.textContent = fmt(counters[key].v) } }, at)
+}
+const camera = (scene, at) => tl.to('#world', { x: -scene * 1920, duration: 1.6, ease: 'power3.inOut' }, at)
+const showCaption = (sel, at) => tl.from(`${sel} h2, ${sel} p`, { y: 60, opacity: 0, duration: 0.9, stagger: 0.15 }, at)
+
+// Background drift for the whole film.
+gsap.set('#blobA', { x: 300, y: 250 }); gsap.set('#blobB', { x: 1650, y: 850 }); gsap.set('#blobC', { x: 1200, y: 100 })
+tl.to('#blobA', { x: 1500, y: 700, duration: 50, ease: 'sine.inOut' }, 0)
+tl.to('#blobB', { x: 400, y: 300, duration: 50, ease: 'sine.inOut' }, 0)
+tl.to('#blobC', { x: 600, y: 900, duration: 50, ease: 'sine.inOut' }, 0)
+
+// 0 · Intro: petals fly in and lock into the star.
+star.petals.forEach((p, k) => {
+  const a = -Math.PI / 2 + k * Math.PI / 4
+  tl.from(p, { x: Math.cos(a) * 700, y: Math.sin(a) * 700, rotation: 120, opacity: 0, duration: 1.4, ease: 'power4.out' }, 0.2 + k * 0.07)
+})
+tl.from(star.core, { scale: 0, duration: 0.7, ease: 'back.out(2.5)' }, 1.2)
+tl.from('#title', { y: 80, opacity: 0, duration: 1 }, 1.4)
+tl.from('#subtitle', { y: 40, opacity: 0, duration: 1 }, 1.7)
+tl.to('#title, #subtitle', { y: -60, opacity: 0, duration: 0.8, ease: 'power2.in' }, 4.4)
+
+// 1 · Menu bar (camera arrives at 5.2)
+camera(1, 4.6)
+showCaption('#cap1', 5.6)
+tl.from('#menubar', { y: -54, duration: 0.7 }, 5.4)
+tl.from('#panel', { y: -40, opacity: 0, duration: 0.8 }, 6.4)
+miniRings.forEach((r, i) => tl.to(r, { attr: { 'stroke-dashoffset': (1 - r.dataset.v) * r.dataset.c }, duration: 1.4, ease: 'power2.out' }, 6.8 + i * 0.1))
+tl.to(sparkPaths.filter((_, i) => i % 2 === 0), { attr: { 'stroke-dashoffset': 0 }, duration: 2.6, ease: 'none', stagger: 0.12 }, 7.0)
+tl.to(sparkPaths.filter((_, i) => i % 2 === 1), { attr: { width: 240 }, duration: 2.6, ease: 'none', stagger: 0.12 }, 7.0)
+tl.to('#gauges .bar i, #procs .bar i', { width: (i, el) => el.dataset.w, duration: 1.2, stagger: 0.08 }, 7.2)
+tl.from('#procs .row', { x: 30, opacity: 0, duration: 0.6, stagger: 0.1 }, 7.6)
+count('cpuPct', document.querySelector('[data-count="cpuPct"]'), 23, (v) => Math.round(v) + '%', 8.5, 2.5)
+
+// 2 · Smart Care (camera arrives at 12.6)
+camera(2, 11.0)
+showCaption('#cap2', 12.2)
+tl.from('#care > *:not(#findings)', { scale: 0.85, opacity: 0, duration: 1, stagger: 0.05 }, 11.9)
+tl.to('#orbA', { rotation: 360, duration: 9, ease: 'none', transformOrigin: '50% 50%' }, 11.9)
+tl.to('#orbB', { rotation: -300, duration: 9, ease: 'none', transformOrigin: '50% 50%' }, 11.9)
+tl.to('#orbC', { rotation: 240, duration: 9, ease: 'none', transformOrigin: '50% 50%' }, 11.9)
+tl.to('#orb', { scale: 0.96, duration: 0.15, yoyo: true, repeat: 1, ease: 'power1.inOut' }, 13.2)   // the click
+tl.to('#orbValue', { opacity: 0, duration: 0.2 }, 13.3)
+tl.to(sweepCirc, { opacity: 1, duration: 0.3 }, 13.4)
+tl.to(sweepCirc, { rotation: 720, duration: 2.6, ease: 'none' }, 13.4)
+tl.to(sweepCirc, { opacity: 0, duration: 0.3 }, 15.8)
+tl.set('#orbValue', { textContent: '0 MB' }, 15.9)
+tl.to('#orbValue', { opacity: 1, duration: 0.3 }, 15.9)
+counters.orb = { v: 0 }
+tl.to(counters.orb, { v: 4820, duration: 1.5, ease: 'power2.out', onUpdate: () => { $('#orbValue').textContent = fmtGB(counters.orb.v) } }, 15.9)
+tl.to('#orbHint', { opacity: 0.9, duration: 0.5 }, 17.2)
+tl.from('.finding', { y: 80, opacity: 0, duration: 0.9, stagger: 0.12 }, 16.3)
+
+// 3 · System Junk + Explain (camera arrives at 20.6)
+camera(3, 19.0)
+showCaption('#cap3', 20.2)
+tl.from('#junk', { y: 60, opacity: 0, duration: 0.9 }, 19.9)
+tl.from('.junkrow', { x: 40, opacity: 0, duration: 0.6, stagger: 0.09 }, 20.3)
+document.querySelectorAll('#junkRows .check').forEach((c, i) => {
+  if (c.dataset.on !== 'true') return
+  tl.to(c, { backgroundColor: '#2f7bf6', borderColor: '#2f7bf6', duration: 0.2 }, 21.3 + i * 0.18)
+  tl.to(c.querySelector('svg'), { opacity: 1, duration: 0.2 }, 21.3 + i * 0.18)
+})
+count('junkSel', document.querySelector('[data-count="junkSel"]'), 1648, fmtGB, 21.3, 1.0)
+// Cursor travels to the first Explain pill and clicks.
+const pill = () => document.querySelector('.junkrow .pill')
+gsap.set('#cursor', { x: 1500, y: 980, opacity: 0 })
+tl.to('#cursor', { opacity: 1, duration: 0.3 }, 22.4)
+tl.to('#cursor', { x: 1560, y: 330, duration: 1.2, ease: 'power2.inOut' }, 22.5)
+tl.to('#cursor', { scale: 0.85, duration: 0.1, yoyo: true, repeat: 1 }, 23.75)
+tl.to('.junkrow:first-child .pill', { scale: 0.92, duration: 0.1, yoyo: true, repeat: 1 }, 23.75)
+tl.from('#popover', { y: 20, scale: 0.94, opacity: 0, duration: 0.5, transformOrigin: '50% 0%' }, 24.0)
+tl.to('#cursor', { opacity: 0, duration: 0.3 }, 24.2)
+tl.to('#spinner', { rotation: 540, duration: 1.4, ease: 'none', transformOrigin: '50% 50%' }, 24.1)
+tl.set('#thinking', { display: 'none' }, 25.5)
+counters.type = { v: 0 }
+tl.to(counters.type, { v: answerText.length, duration: 2.6, ease: 'none',
+  onUpdate: () => { $('#answer').textContent = answerText.slice(0, Math.round(counters.type.v)) } }, 25.5)
+tl.to('#verdict', { opacity: 1, duration: 0.01 }, 28.2)
+tl.from('#verdict', { scale: 0.6, duration: 0.6, ease: 'back.out(2.5)' }, 28.2)
+
+// 4 · Uninstaller (camera arrives at 31.6)
+camera(4, 30.0)
+showCaption('#cap4', 31.2)
+tl.from('#uninst', { y: 60, opacity: 0, duration: 0.9 }, 30.9)
+tl.from('.leftrow', { x: 40, opacity: 0, duration: 0.6, stagger: 0.09 }, 31.4)
+gsap.set('#freed', { opacity: 0 })
+gsap.set('#cursor2', { x: 1500, y: 1000, opacity: 0 })
+tl.to('#cursor2', { opacity: 1, duration: 0.3 }, 32.6)
+tl.to('#cursor2', { x: 1650, y: 900, duration: 1.0, ease: 'power2.inOut' }, 32.7)
+tl.to('#cursor2', { scale: 0.85, duration: 0.1, yoyo: true, repeat: 1 }, 33.75)
+tl.to('#uninstallBtn', { scale: 0.94, duration: 0.1, yoyo: true, repeat: 1 }, 33.75)
+tl.to('#cursor2', { opacity: 0, duration: 0.3 }, 34.0)
+tl.to('.leftrow', { x: -60, opacity: 0, height: 0, duration: 0.5, stagger: 0.08, ease: 'power2.in' }, 34.1)
+tl.to('#freed', { opacity: 1, duration: 0.4 }, 34.7)
+count('freed', document.querySelector('[data-count="freed"]'), 2.41, (v) => v.toFixed(2) + ' GB', 34.7, 1.4)
+
+// 5 · Space Lens (camera arrives at 39.1)
+camera(5, 37.5)
+showCaption('#cap5', 38.7)
+sectors.forEach((s, i) => tl.to(s, { attr: { 'stroke-dasharray': `${s.dataset.len} ${s.dataset.c}` }, duration: 0.8, ease: 'power2.out' }, 38.9 + i * 0.16))
+count('lensTotal', document.querySelector('[data-count="lensTotal"]'), lensTotal, (v) => v.toFixed(1) + ' GB', 38.9, 1.8)
+tl.from('.lensrow', { x: 40, opacity: 0, duration: 0.6, stagger: 0.09 }, 39.0)
+tl.to('.lensrow .bar i', { width: (i, el) => el.dataset.w, duration: 1.2, stagger: 0.09 }, 39.3)
+
+// 6 · Outro (camera arrives at 44.6)
+camera(6, 43.0)
+star2.petals.forEach((p, k) => tl.from(p, { scale: 0, rotation: -45, opacity: 0, duration: 0.8, ease: 'back.out(1.6)' }, 44.0 + k * 0.06))
+tl.from(star2.core, { scale: 0, duration: 0.5, ease: 'back.out(2.5)' }, 44.6)
+tl.from('#outroTitle', { y: 60, opacity: 0, duration: 0.9 }, 44.8)
+tl.from('#outroLine1, #outroLine2', { y: 30, opacity: 0, duration: 0.8, stagger: 0.15 }, 45.2)
+tl.to({}, { duration: 3 }, 46.0)   // hold the end card
+
+// ---------- the handle the renderer talks to ----------
+// seek returns nothing: handing the timeline object back to Playwright would try to serialize all of GSAP.
+window.film = { ready: false, duration: tl.duration(), seek: (t) => { tl.seek(t, false) } }
+document.fonts.ready.then(() => { window.film.ready = true })
+if (!location.search.includes('render')) tl.play()
+</script>
+</body>
+</html>
