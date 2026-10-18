@@ -29,6 +29,8 @@ shoot() {
         sleep 0.2
     done
     sleep "$wait"
+    # Look the window up again: SwiftUI can replace it while the screen settles.
+    id=$("$HELPER" "$kind") || { echo "  the $kind window for $name went away"; return 1; }
     screencapture -x -o -l "$id" "$OUT/$name.png"
     echo "  $OUT/$name.png"
 }
