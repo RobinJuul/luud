@@ -134,12 +134,16 @@ struct LiveValue: View {
     var size: CGFloat = 28
     var weight: Font.Weight = .bold
 
+    /// Only headline-sized numbers roll; animating every small value each second keeps the
+    /// display redrawing constantly (it more than doubled the Dashboard's CPU use).
+    private var rolls: Bool { size >= 24 }
+
     var body: some View {
         Text(text)
             .font(.system(size: size, weight: weight, design: .rounded))
             .monospacedDigit()
-            .contentTransition(.numericText(value: value))
-            .animation(Motion.live, value: value)
+            .contentTransition(rolls ? .numericText(value: value) : .identity)
+            .animation(rolls ? Motion.live : nil, value: value)
     }
 }
 

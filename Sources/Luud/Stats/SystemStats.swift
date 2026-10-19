@@ -5,7 +5,7 @@ import UserNotifications
 /// Properties aren't @Published: each tick sends a single objectWillChange for all of them.
 @MainActor
 final class SystemStats: ObservableObject {
-    static let historyLength = 60
+    nonisolated static let historyLength = 60
 
     private(set) var cpu: Double = 0
     private(set) var cpuHistory: [Double] = []

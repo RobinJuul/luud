@@ -90,7 +90,6 @@ struct MenuBarView: View {
                                share: min(process.cpu / Double(max(MachineInfo.coreCount, 1)) * 4, 1), tint: Palette.cpu)
                 }
             }
-            .animation(.snappy, value: stats.topCPU.prefix(4).map(\.id))
 
             HStack(spacing: 8) {
                 Button(action: freeRAM) {
@@ -253,7 +252,7 @@ struct ProcessRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            if let icon = NSRunningApplication(processIdentifier: process.id)?.icon {
+            if let icon = IconCache.appIcon(pid: process.id) {
                 Image(nsImage: icon).resizable().frame(width: 18, height: 18)
             } else {
                 Image(systemName: "gearshape.fill").frame(width: 18, height: 18).foregroundStyle(.tertiary)
@@ -266,7 +265,6 @@ struct ProcessRow: View {
             }
             Spacer(minLength: 8)
             Text(metric).monospacedDigit().foregroundStyle(.secondary)
-                .contentTransition(.numericText())
             if process.isApp {
                 Button {
                     NSRunningApplication(processIdentifier: process.id)?.terminate()

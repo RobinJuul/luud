@@ -113,14 +113,9 @@ struct SmartCareView: View {
     var body: some View {
         VStack(spacing: 0) {
             PageHeader(section: .smartCare, subtitle: headline, isActive: busy) { EmptyView() }
-            // The page doesn't scroll: it uses the roomy layout when it fits, a compact one when
-            // the window is smaller, and scrolls only if even that doesn't fit.
-            ViewThatFits(in: .vertical) {
-                content(compact: false)
-                content(compact: true)
-                ScrollView { content(compact: true) }
-            }
-            .frame(maxHeight: .infinity, alignment: .top)
+            // The page doesn't scroll: roomy when it fits, compact on smaller windows,
+            // scrolling only if even that doesn't fit.
+            FittingLayout { compact in content(compact: compact) }
         }
         .animation(.spring(response: 0.6, dampingFraction: 0.85), value: cleanup.hasScanned || uninstaller.hasLoaded)
         .task {
@@ -257,6 +252,7 @@ private struct ScanOrb: View {
     var size: CGFloat = 190
     let action: () -> Void
     @State private var isHovering = false
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         Button(action: action) {
@@ -286,9 +282,14 @@ private struct ScanOrb: View {
             .animation(.spring(response: 0.4, dampingFraction: 0.7), value: isHovering)
         }
         .buttonStyle(.plain)
-        // Not a focus target: the focus ring draws a square around the circle, and macOS
-        // scrolls the page to keep the focused control in view whenever the content changes.
-        .focusable(false)
+        // The system focus ring is a square; draw a round one that follows the orb instead.
+        .focusEffectDisabled()
+        .focused($isFocused)
+        .overlay {
+            if isFocused {
+                Circle().strokeBorder(Color.accentColor, lineWidth: 3).padding(-7).allowsHitTesting(false)
+            }
+        }
         .disabled(isBusy)
         .onHover { isHovering = $0 }
     }
@@ -437,13 +438,8 @@ struct DashboardView: View {
             PageHeader(section: .dashboard, subtitle: "\(MachineInfo.chip), \(MachineInfo.osVersion), up \(Fmt.duration(stats.uptime))") {
                 EmptyView()
             }
-            // Two columns that fit the window; compact sizes on smaller windows, scrolling only as a last resort.
-            ViewThatFits(in: .vertical) {
-                columns(compact: false)
-                columns(compact: true)
-                ScrollView { columns(compact: true) }
-            }
-            .frame(maxHeight: .infinity, alignment: .top)
+            // Two columns that fit the window; compact on smaller windows, scrolling only as a last resort.
+            FittingLayout { compact in columns(compact: compact) }
         }
     }
 
@@ -557,8 +553,14 @@ struct DashboardView: View {
                 Text("Your own processes; system ones need admin rights.")
                     .font(.caption).foregroundStyle(.tertiary)
             }
-            .animation(.snappy, value: list.prefix(rows).map(\.id))
         }
+    }
+
+    private func batteryState(_ battery: BatteryInfo) -> String {
+        if battery.isCharging { return "Charging" }
+        if battery.onACPower { return "On power adapter" }
+        if let minutes = battery.minutesRemaining { return "\(minutes / 60)h \(minutes % 60)m left" }
+        return "On battery"
     }
 
     private func batteryCard(_ battery: BatteryInfo) -> some View {
@@ -570,7 +572,14 @@ struct DashboardView: View {
                     LiveValue(text: Fmt.percent(battery.level), value: battery.level, size: 22, weight: .heavy)
                 }
                 UsageBar(fraction: battery.level, tint: battery.level < 0.2 ? Palette.danger : Palette.network, height: 8)
-                BatteryStrip(battery: battery).foregroundStyle(.secondary).font(.caption)
+                HStack {
+                    Text(batteryState(battery))
+                    Spacer()
+                    if let health = battery.health { Text("Health \(Fmt.percent(health))") }
+                    if let cycles = battery.cycleCount { Text("\(cycles) cycles") }
+                }
+                .font(.callout)
+                .foregroundStyle(.secondary)
             }
         }
     }
@@ -618,7 +627,7 @@ private struct MemoryBreakdown: View {
                     }
                     Spacer(minLength: 0)
                 }
-                .animation(Motion.live, value: memory.used)
+
             }
             .frame(height: 14)
             .background(.fill.tertiary)
