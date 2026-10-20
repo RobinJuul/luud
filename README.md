@@ -109,6 +109,7 @@ That builds a release binary, wraps it in `Luud.app`, signs it for your Mac, cop
 2. Click **Scan** in Smart Care.
 3. To include the Trash and Mail attachments, give Luud **Full Disk Access**: System Settings → Privacy & Security → Full Disk Access. Luud shows a button that takes you there.
 4. Optional: turn on **Open at login** in Luud's Settings.
+5. Optional: turn on Apple Intelligence for the Explain button. See [Turning on Apple Intelligence](#turning-on-apple-intelligence).
 
 macOS may ask for access to Desktop, Documents or Downloads the first time you scan large files or use Space Lens. Some maintenance tasks ask for your administrator password through the standard macOS prompt.
 
@@ -177,6 +178,18 @@ The on-device model is small, and on its own it wasn't reliable enough to trust 
 - said a folder belonged to an installed app when the facts said the app was gone.
 
 So the facts Luud knows for certain (where a file lives, whether its app is installed) decide the verdict, and the model does what it's good at: explaining it in plain words. With that split, every test item the rules covered got the right verdict, and the model's calls on unfamiliar folders were reasonable but sometimes vague. You can see the logic in [`ItemExplainer.swift`](Sources/Luud/AI/ItemExplainer.swift).
+
+### Turning on Apple Intelligence
+
+The Explain button needs Apple Intelligence, which comes with macOS but is off until you turn it on.
+
+1. **Check your Mac.** You need a Mac with Apple silicon (M1 or later, including the M1 MacBook Air) running macOS 26 or later.
+2. **Open the settings.** Choose Apple menu → System Settings → **Apple Intelligence & Siri**. Luud can take you there: Settings → Apple Intelligence → **Open Settings**, or **Open Apple Intelligence Settings** in the Explain popover.
+3. **Turn on Apple Intelligence.** macOS then downloads the model. That needs several gigabytes of free space and can take a while; the settings page shows the progress.
+4. **If the switch is missing or greyed out,** make your Mac's language and Siri's language the same supported language, for example English. Set them in System Settings → General → Language & Region and under Apple Intelligence & Siri.
+5. **Back in Luud,** click ✨ Explain on any item. Settings → Apple Intelligence shows *Ready on this Mac* once it works.
+
+On a Mac without Apple Intelligence, everything else in Luud works the same; only the Explain button can't answer.
 
 ### Limits
 

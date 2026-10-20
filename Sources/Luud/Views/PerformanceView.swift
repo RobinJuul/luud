@@ -158,6 +158,26 @@ struct SettingsView: View {
                     Stepper("Alert below \(lowDiskThresholdGB) GB free", value: $lowDiskThresholdGB, in: 5...100, step: 5)
                         .disabled(!lowDiskAlerts)
                 }
+                SwiftUI.Section("Apple Intelligence") {
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Label(aiStatus, systemImage: aiReady ? "checkmark.circle.fill" : "exclamationmark.circle")
+                                .foregroundStyle(aiReady ? Palette.network : .orange)
+                            Text("Used by the Explain button to describe files and folders. It runs on your Mac; nothing is sent anywhere.")
+                                .font(.caption).foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer()
+                        if ItemExplainer.isCompiledIn && !aiReady {
+                            Button("Open Settings") { SystemSettings.openAppleIntelligence() }
+                        }
+                    }
+                    if ItemExplainer.canBeTurnedOn {
+                        Text("In System Settings, open Apple Intelligence & Siri and turn on Apple Intelligence. It downloads its model the first time, which needs several gigabytes of free space and can take a while. Your Mac's language and Siri's language need to be the same supported language.")
+                            .font(.caption).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
                 SwiftUI.Section("Permissions") {
                     HStack {
                         VStack(alignment: .leading) {
@@ -174,6 +194,9 @@ struct SettingsView: View {
             .frame(maxWidth: 640)
         }
     }
+
+    private var aiReady: Bool { ItemExplainer.unavailableReason == nil }
+    private var aiStatus: String { ItemExplainer.unavailableReason ?? "Ready on this Mac" }
 
     private func setLaunchAtLogin(_ enabled: Bool) {
         do {

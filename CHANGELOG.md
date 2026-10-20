@@ -2,6 +2,16 @@
 
 All notable changes to Luud are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.1.2] - 2026-10-20
+
+### Download
+
+Download **Luud-0.1.2.dmg**, open it and drag Luud to Applications, replacing the old version. The first time you open it, macOS may ask you to allow it under System Settings → Privacy & Security → **Open Anyway**.
+
+### Added
+
+- **Help turning on Apple Intelligence.** When Explain finds Apple Intelligence off or still downloading, its popover has an **Open Apple Intelligence Settings** button. Settings has a new Apple Intelligence section that shows whether it's ready, with the same button and short instructions. The README has a step-by-step guide.
+
 ## [0.1.1] - 2026-10-18
 
 ### Download
@@ -47,5 +57,6 @@ Luud isn't notarized yet. The first time you open it, macOS will block it: go to
 - Anything you might want back goes to the Trash; only things apps rebuild by themselves are deleted.
 - Admin tasks run only after the standard macOS password prompt.
 
+[0.1.2]: https://github.com/RobinJuul/luud/releases/tag/v0.1.2
 [0.1.1]: https://github.com/RobinJuul/luud/releases/tag/v0.1.1
 [0.1.0]: https://github.com/RobinJuul/luud/releases/tag/v0.1.0

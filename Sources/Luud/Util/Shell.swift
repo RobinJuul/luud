@@ -47,6 +47,11 @@ enum SystemSettings {
         open("x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")
     }
 
+    /// System Settings → Apple Intelligence & Siri.
+    static func openAppleIntelligence() {
+        open("x-apple.systempreferences:com.apple.Siri-Settings.extension")
+    }
+
     static func openLoginItems() {
         open("x-apple.systempreferences:com.apple.LoginItems-Settings.extension")
     }
