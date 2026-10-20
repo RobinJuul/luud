@@ -2,15 +2,15 @@
 
 All notable changes to Luud are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
-## [1.0.0] - 2026-10-18
+## [0.1.0] - 2026-10-18
 
 The first release.
 
 ### Download
 
-Download **Luud-1.0.0.dmg**, open it and drag Luud to Applications. It runs on macOS 15 or later, on Apple silicon and Intel Macs. Apple Intelligence features need macOS 26 on a Mac that supports Apple Intelligence.
+Download **Luud-0.1.0.dmg**, open it and drag Luud to Applications. It runs on macOS 15 or later, on Apple silicon and Intel Macs. Apple Intelligence features need macOS 26 on a Mac that supports Apple Intelligence.
 
-Luud isn't notarized yet. The first time you open it, macOS will block it: go to System Settings → Privacy & Security and click **Open Anyway**. To check the download, run `shasum -a 256 Luud-1.0.0.dmg` and compare the result with the line in `SHA256SUMS`.
+Luud isn't notarized yet. The first time you open it, macOS will block it: go to System Settings → Privacy & Security and click **Open Anyway**. To check the download, run `shasum -a 256 Luud-0.1.0.dmg` and compare the result with the line in `SHA256SUMS`.
 
 ### Features
 
@@ -31,4 +31,4 @@ Luud isn't notarized yet. The first time you open it, macOS will block it: go to
 - Anything you might want back goes to the Trash; only things apps rebuild by themselves are deleted.
 - Admin tasks run only after the standard macOS password prompt.
 
-[1.0.0]: https://github.com/RobinJuul/luud/releases/tag/v1.0.0
+[0.1.0]: https://github.com/RobinJuul/luud/releases/tag/v0.1.0

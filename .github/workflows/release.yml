@@ -1,5 +1,5 @@
 # Builds the release package on a macOS runner.
-# - Pushing a tag like v1.0.0 builds, then publishes a GitHub Release with the DMG, zip and checksums.
+# - Pushing a tag like v0.1.0 builds, then publishes a GitHub Release with the DMG, zip and checksums.
 # - Pushing to a release/* branch (or running it by hand) only builds, and keeps the package
 #   as a workflow artifact so it can be tried before tagging.
 name: Release
