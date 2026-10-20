@@ -42,8 +42,17 @@ if [[ ! -f build/AppIcon.icns ]]; then
 fi
 cp build/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
-# Ad-hoc signature: enough to run locally and register as a login item.
-codesign --force --sign - "$APP"
+# Sign with Luud's own certificate when it's available, so every build has the same identity
+# and macOS keeps permissions (Full Disk Access, login item) across updates. Without it,
+# fall back to an ad-hoc signature, which is fine for running your own build.
+IDENTITY="${LUUD_SIGN_IDENTITY:-Luud Code Signing}"
+if security find-identity -p codesigning 2>/dev/null | grep -q "\"$IDENTITY\""; then
+    codesign --force --sign "$IDENTITY" "$APP"
+    echo "Signed with \"$IDENTITY\""
+else
+    codesign --force --sign - "$APP"
+    echo "Signed ad hoc (no \"$IDENTITY\" certificate in the keychain)"
+fi
 
 if $INSTALL; then
     pkill -x Luud 2>/dev/null || true

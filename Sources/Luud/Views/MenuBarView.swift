@@ -44,12 +44,17 @@ struct MenuBarLabel: View {
 struct MenuBarView: View {
     @EnvironmentObject private var stats: SystemStats
     @EnvironmentObject private var router: Router
+    @ObservedObject private var updates = UpdateChecker.shared
     @State private var isFreeingRAM = false
     @State private var status: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
+
+            if let update = updates.available {
+                UpdateNotice(version: update.version) { updates.openDownloadPage() }
+            }
 
             VStack(spacing: 10) {
                 GaugeRow(icon: "cpu", title: "CPU", tint: Palette.cpu,
@@ -165,6 +170,31 @@ struct MenuBarView: View {
             }
             isFreeingRAM = false
         }
+    }
+}
+
+/// "Luud x.y.z is available" with a Download button that opens the release page.
+struct UpdateNotice: View {
+    let version: String
+    let download: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "arrow.down.circle.fill")
+                .font(.title2)
+                .foregroundStyle(Palette.brandGradient)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Luud \(version) is available").font(.callout.weight(.semibold))
+                Text("See what's new and download it").font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("Download", action: download)
+                .buttonStyle(.borderedProminent)
+                .tint(Palette.brandPink)
+                .buttonBorderShape(.roundedRectangle(radius: Corner.inner(Corner.banner, padding: 10)))
+        }
+        .padding(10)
+        .background(Palette.brandPink.opacity(0.12), in: RoundedRectangle(cornerRadius: Corner.banner, style: .continuous))
     }
 }
 

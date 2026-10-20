@@ -18,6 +18,9 @@ enum LaunchOptions {
     /// Bundle identifier the Uninstaller selects once apps are listed.
     static var uninstallerApp: String? { defaults.string(forKey: "LuudSelectApp") }
 
+    /// Pretend this version is the latest release, without asking GitHub (for screenshots).
+    static var pretendUpdate: String? { defaults.string(forKey: "LuudPretendUpdate") }
+
     /// Show the menu bar panel in a regular window (the real one only opens on click).
     static var menuPreview: Bool { defaults.bool(forKey: "LuudMenuPreview") }
 }

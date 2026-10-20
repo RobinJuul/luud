@@ -68,6 +68,7 @@ private func hidePreviewWindowButtons() {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        UpdateChecker.shared.start()
 
         // Started by "Open at Login": stay in the menu bar instead of popping the window open.
         if LaunchContext.isLoginLaunch {

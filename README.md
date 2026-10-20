@@ -73,6 +73,7 @@ Also included:
 - **Large Files:** everything over 100 MB, 500 MB, 1 GB or 5 GB in your home folder, with when you last opened it.
 - **Performance:** maintenance tasks (free up RAM, flush DNS, thin Time Machine snapshots, reindex Spotlight, rebuild Launch Services) and a list of background launch agents and daemons you can switch off and on again.
 - **Alerts:** a notification when your startup disk drops below a threshold you choose.
+- **Update notices:** Luud tells you when a new version is out (see [Updating](#updating)).
 - **Open at login**, and a choice of what the menu bar shows (CPU and memory, CPU, memory, network speed or just the icon).
 
 ## Getting started
@@ -113,9 +114,23 @@ That builds a release binary, wraps it in `Luud.app`, signs it for your Mac, cop
 
 macOS may ask for access to Desktop, Documents or Downloads the first time you scan large files or use Space Lens. Some maintenance tasks ask for your administrator password through the standard macOS prompt.
 
+### Updating
+
+When a new version is released, Luud tells you:
+
+- a notice at the top of the menu bar panel, with a **Download** button;
+- one notification per new version;
+- an **Update** badge on Settings, where Settings → Updates shows your version, when Luud last checked, and **Check Now**.
+
+To update, click **Download**, open the new `.dmg` and drag Luud to Applications, replacing the old one. Your settings stay.
+
+Releases from 0.1.3 on are all signed with the same certificate, so macOS recognises an update as the same app and keeps its permissions (Full Disk Access, Open at login). Coming from 0.1.2 or earlier, macOS asks once more: allow it under Privacy & Security → **Open Anyway** and give Full Disk Access again.
+
+Prefer email? On GitHub, click **Watch → Custom → Releases** on this repository.
+
 ### Sharing a build
 
-`build.sh` signs the app ad hoc, which is enough for the Mac that built it. On another Mac, Gatekeeper will block it until the person allows it under System Settings → Privacy & Security → **Open Anyway**. Signing with a Developer ID and notarizing (`xcrun notarytool`) removes that step; it needs a paid Apple Developer account.
+Release builds are signed with Luud's own certificate. Because it isn't from Apple, Gatekeeper blocks the first launch on any Mac until you allow it under System Settings → Privacy & Security → **Open Anyway**; after that, updates open normally. `build.sh` uses the certificate when it's in your keychain (named `Luud Code Signing`, or set `LUUD_SIGN_IDENTITY`) and signs ad hoc otherwise, which is fine for your own builds. A Developer ID with notarization would remove the Open Anyway step; it needs a paid Apple Developer account.
 
 ## How cleaning works
 
@@ -200,7 +215,7 @@ On a Mac without Apple Intelligence, everything else in Luud works the same; onl
 
 ## Privacy
 
-- **No network.** Luud has no networking code: no analytics, no telemetry, no update checks.
+- **One network request, once a day.** Luud asks GitHub for the latest release to tell you about updates. The request carries nothing about you or your Mac, and you can turn it off in Settings → Updates. There are no analytics and no telemetry.
 - **On-device AI.** Explanations come from the model on your Mac, and the model only sees the short fact list above, never file contents.
 - **Local settings.** Your preferences live in macOS's normal app preferences, and nothing else is stored.
 
@@ -229,7 +244,7 @@ git tag v0.1.1
 git push origin v0.1.1
 ```
 
-The workflow checks that the tag matches `Info.plist` and that the changelog has an entry, then publishes the release. To package locally instead, run `./Scripts/package.sh`.
+The workflow checks that the tag matches `Info.plist` and that the changelog has an entry, signs the app with the certificate from the `LUUD_SIGNING_P12` and `LUUD_SIGNING_PASSWORD` repository secrets (it won't publish an unsigned release), then publishes the release. Installed copies of Luud see it within a day. To package locally instead, run `./Scripts/package.sh`.
 
 ### Launch options
 
@@ -246,6 +261,7 @@ open ~/Applications/Luud.app --args -LuudSection dashboard
 | `-LuudSpaceLensRoot <path>` | Folder Space Lens maps on launch |
 | `-LuudSelectApp <bundle id>` | App the Uninstaller selects once apps are listed |
 | `-LuudMenuPreview YES` | Shows the menu bar panel in a regular window (the real one only opens on click) |
+| `-LuudPretendUpdate <version>` | Acts as if that version were the latest release, without asking GitHub |
 
 ### The demo video
 
@@ -303,7 +319,8 @@ Inside the app, each metric keeps one colour everywhere: CPU cyan, memory violet
 
 ## Limitations
 
-- **Not notarized** yet, so shared builds need *Open Anyway* the first time.
+- **Not notarized** yet, so the first launch needs *Open Anyway*.
+- **Updates are a download.** Luud tells you about a new version, but you install it yourself; one-click updates would come with notarization.
 - **Process lists show your own processes.** System processes owned by root can't be inspected without admin rights.
 - **No malware scanning.** macOS's built-in XProtect covers known malware.
 - **No desktop widget yet.** WidgetKit extensions need full Xcode to build.

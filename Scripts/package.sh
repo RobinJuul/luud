@@ -14,6 +14,7 @@ STAGE="build/dmg"
 
 ./build.sh --universal
 codesign --verify --strict "$APP"
+echo "Signature: $(codesign -d -r- "$APP" 2>&1 | grep designated)"
 echo "Architectures: $(lipo -archs "$APP/Contents/MacOS/Luud")"
 
 rm -rf "$DIST" "$STAGE"
