@@ -29,18 +29,25 @@ shoot() {
         sleep 0.2
     done
     sleep "$wait"
-    # Look the window up again: SwiftUI can replace it while the screen settles.
-    id=$("$HELPER" "$kind") || { echo "  the $kind window for $name went away"; return 1; }
-    screencapture -x -o -l "$id" "$OUT/$name.png"
+    # Look the window up again right before capturing (SwiftUI can replace it, or it can be
+    # briefly off screen during a Space switch), and retry for up to half a minute.
+    local tries=0
+    until id=$("$HELPER" "$kind" 2>/dev/null) && screencapture -x -o -l "$id" "$OUT/$name.png" 2>/dev/null; do
+        (( ++tries > 15 )) && { echo "  couldn't capture $name"; return 1; }
+        sleep 2
+    done
     echo "  $OUT/$name.png"
 }
 
+# Same window size every time, so screenshots match whatever size you use Luud at.
+FRAME=(-"NSWindow Frame main" "100 60 1300 800 0 0 1512 949")
+
 echo "Capturing screenshots…"
-shoot smart-care  25 main -LuudSection smartCare -LuudAutoScan YES
-shoot dashboard   65 main -LuudSection dashboard
-shoot system-junk 20 main -LuudSection cleanup -LuudAutoScan YES
-shoot uninstaller 15 main -LuudSection uninstaller -LuudSelectApp "${LUUD_SCREENSHOT_APP:-com.spotify.client}"
-shoot space-lens  20 main -LuudSection spaceLens -LuudSpaceLensRoot /Applications
+shoot smart-care  25 main -LuudSection smartCare -LuudAutoScan YES "${FRAME[@]}"
+shoot dashboard   65 main -LuudSection dashboard "${FRAME[@]}"
+shoot system-junk 20 main -LuudSection cleanup -LuudAutoScan YES "${FRAME[@]}"
+shoot uninstaller 15 main -LuudSection uninstaller -LuudSelectApp "${LUUD_SCREENSHOT_APP:-com.spotify.client}" "${FRAME[@]}"
+shoot space-lens  20 main -LuudSection spaceLens -LuudSpaceLensRoot /Applications "${FRAME[@]}"
 shoot menu-bar    65 menu -LuudMenuPreview YES
 
 pkill -x Luud 2>/dev/null || true
