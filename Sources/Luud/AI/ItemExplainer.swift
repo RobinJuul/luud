@@ -204,6 +204,20 @@ enum ItemExplainer {
         #endif
     }
 
+    /// True when Apple Intelligence just needs turning on or finishing its download,
+    /// so pointing the person at System Settings will fix it.
+    static var canBeTurnedOn: Bool {
+        #if canImport(FoundationModels)
+        guard #available(macOS 26.0, *) else { return false }
+        switch SystemLanguageModel.default.availability {
+        case .unavailable(.appleIntelligenceNotEnabled), .unavailable(.modelNotReady): return true
+        default: return false
+        }
+        #else
+        return false
+        #endif
+    }
+
     static func explain(_ facts: ItemFacts) async throws -> Explanation {
         #if canImport(FoundationModels)
         guard #available(macOS 26.0, *), unavailableReason == nil else { throw ExplainerError.unavailable }

@@ -89,7 +89,13 @@ private struct ExplanationCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             case .failed(let message):
                 Text(message).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                Button("Try Again", action: retry)
+                HStack {
+                    if ItemExplainer.canBeTurnedOn {
+                        Button("Open Apple Intelligence Settings") { SystemSettings.openAppleIntelligence() }
+                            .buttonStyle(.borderedProminent)
+                    }
+                    Button("Try Again", action: retry)
+                }
             }
         }
         .padding(Corner.panelPadding)

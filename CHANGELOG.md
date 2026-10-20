@@ -2,6 +2,12 @@
 
 All notable changes to Luud are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [Unreleased]
+
+### Added
+
+- **Help turning on Apple Intelligence.** When Explain finds Apple Intelligence off or still downloading, its popover has an **Open Apple Intelligence Settings** button. Settings has a new Apple Intelligence section that shows whether it's ready, with the same button and short instructions. The README has a step-by-step guide.
+
 ## [0.1.1] - 2026-10-18
 
 ### Download
