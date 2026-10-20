@@ -42,7 +42,8 @@ struct MainView: View {
         // Transparent toolbar so the backdrop runs to the top edge; the sidebar toggle stays.
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         .animation(.easeInOut(duration: 0.2), value: router.selection)
-        .frame(minWidth: 960, minHeight: 640)
+        // Narrower than this, the Dashboard's two columns get crushed.
+        .frame(minWidth: 1060, minHeight: 640)
         .onAppear {
             NSApp.setActivationPolicy(.regular)
             NSApp.activate(ignoringOtherApps: true)
@@ -323,6 +324,8 @@ private struct Finding: View {
                     Text(title).font(.subheadline).foregroundStyle(.secondary)
                     if let value {
                         LiveValue(text: value, value: numeric, size: compact ? 22 : 26, weight: .heavy)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                     } else if isChecking {
                         HStack(spacing: 8) {
                             ProgressView().controlSize(.small)
@@ -333,7 +336,7 @@ private struct Finding: View {
                     Text(detail)
                         .font(isPreview && !compact ? .body : .callout)
                         .foregroundStyle(.secondary)
-                        .lineLimit(compact ? 1 : 2)
+                        .lineLimit(compact && !isPreview ? 1 : 2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
@@ -343,6 +346,7 @@ private struct Finding: View {
                 }
             }
             .frame(minHeight: compact ? 60 : 84, alignment: .top)
+            .frame(maxHeight: .infinity, alignment: .top)
         }
         // A dashed outline marks a card that's waiting for the scan.
         .overlay {
@@ -453,11 +457,9 @@ struct DashboardView: View {
                 HStack(alignment: .top, spacing: gap) {
                     Card {
                         VStack(alignment: .leading, spacing: 10) {
-                            HStack(alignment: .firstTextBaseline) {
-                                MetricHeader(title: "CPU", icon: "cpu", tint: Palette.cpu)
-                                Spacer()
-                                Text("\(MachineInfo.coreCount) cores").font(.caption).foregroundStyle(.tertiary)
-                            }
+                            MetricHeader(title: "CPU", icon: "cpu", tint: Palette.cpu)
+                            Text("\(MachineInfo.coreCount) cores, last minute")
+                                .font(.system(size: 13, weight: .semibold)).foregroundStyle(.tertiary).lineLimit(1)
                             HistoryChart(series: [.init(id: "CPU", values: stats.cpuHistory, color: Palette.cpu)],
                                          maxValue: 1, label: Fmt.percent)
                                 .frame(height: chartHeight)
@@ -465,14 +467,14 @@ struct DashboardView: View {
                     }
                     Card {
                         VStack(alignment: .leading, spacing: 10) {
-                            HStack(alignment: .firstTextBaseline) {
-                                MetricHeader(title: "Network", icon: "arrow.up.arrow.down", tint: Palette.network)
-                                Spacer()
+                            MetricHeader(title: "Network", icon: "arrow.up.arrow.down", tint: Palette.network)
+                            HStack(spacing: 12) {
                                 LiveValue(text: "↓ \(Fmt.rate(stats.networkIn))", value: stats.networkIn, size: 13, weight: .semibold)
                                     .foregroundStyle(Palette.network)
                                 LiveValue(text: "↑ \(Fmt.rate(stats.networkOut))", value: stats.networkOut, size: 13, weight: .semibold)
                                     .foregroundStyle(Palette.upload)
                             }
+                            .lineLimit(1)
                             HistoryChart(series: [
                                 .init(id: "Download", values: stats.networkInHistory, color: Palette.network),
                                 .init(id: "Upload", values: stats.networkOutHistory, color: Palette.upload),
@@ -499,7 +501,7 @@ struct DashboardView: View {
                 processes(rows: compact ? 5 : 7)
                 if let battery = stats.battery { batteryCard(battery) }
             }
-            .frame(width: 330)
+            .frame(width: 300)
         }
         .padding(.horizontal, 28)
         .padding(.bottom, 20)
@@ -595,12 +597,18 @@ private struct VitalLine: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 14) {
+            // Room for "100%"; shrinks slightly rather than wrapping.
             LiveValue(text: value, value: numeric, size: size, weight: .heavy)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
                 .foregroundStyle(color)
-                .frame(width: size * 2.6, alignment: .leading)
-            VStack(alignment: .leading, spacing: 1) {
+                .frame(width: size * 3.1, alignment: .leading)
+            ViewThatFits(in: .horizontal) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title).font(.headline)
+                    Text(detail).font(.callout).foregroundStyle(.secondary).lineLimit(1).fixedSize()
+                }
                 Text(title).font(.headline)
-                Text(detail).font(.callout).foregroundStyle(.secondary).lineLimit(1)
             }
         }
     }
@@ -609,6 +617,15 @@ private struct VitalLine: View {
 private struct MemoryBreakdown: View {
     let memory: MemorySnapshot
     let total: UInt64
+
+    private func legendItem(_ part: (String, UInt64, Color)) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(part.2).frame(width: 7, height: 7)
+            Text(part.0).foregroundStyle(.secondary)
+            Text(Fmt.bytes(part.1)).monospacedDigit()
+        }
+        .fixedSize()
+    }
 
     var body: some View {
         let parts: [(String, UInt64, Color)] = [
@@ -632,16 +649,14 @@ private struct MemoryBreakdown: View {
             .frame(height: 14)
             .background(.fill.tertiary)
             .clipShape(Capsule())
-            HStack(spacing: 14) {
-                ForEach(parts, id: \.0) { part in
-                    HStack(spacing: 5) {
-                        Circle().fill(part.2).frame(width: 7, height: 7)
-                        Text(part.0).foregroundStyle(.secondary)
-                        Text(Fmt.bytes(part.1)).monospacedDigit()
-                    }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 14) {
+                    ForEach(parts, id: \.0) { part in legendItem(part) }
+                    if memory.swapUsed > 0 { Text("Swap \(Fmt.bytes(memory.swapUsed))").foregroundStyle(.secondary) }
                 }
-                if memory.swapUsed > 0 {
-                    Text("Swap \(Fmt.bytes(memory.swapUsed))").foregroundStyle(.secondary)
+                Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 4) {
+                    GridRow { legendItem(parts[0]); legendItem(parts[1]) }
+                    GridRow { legendItem(parts[2]); legendItem(parts[3]) }
                 }
             }
             .font(.caption)
