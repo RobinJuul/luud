@@ -1,6 +1,37 @@
 import AppKit
-import Charts
 import SwiftUI
+
+/// Points for a history series: slot 0 on the left, newest on the right, smoothed through midpoints.
+/// Drawn with Canvas rather than Swift Charts: one draw per tick instead of rebuilding 60 chart marks.
+private func historyPath(_ values: [Double], top: Double, in rect: CGRect) -> Path {
+    let slots = max(SystemStats.historyLength - 1, 1)
+    let points = values.enumerated().map { index, value in
+        CGPoint(x: rect.minX + rect.width * CGFloat(index) / CGFloat(slots),
+                y: rect.maxY - rect.height * CGFloat(min(max(value / max(top, .ulpOfOne), 0), 1)))
+    }
+    var path = Path()
+    guard let first = points.first else { return path }
+    path.move(to: first)
+    for (previous, point) in zip(points, points.dropFirst()) {
+        let mid = CGPoint(x: (previous.x + point.x) / 2, y: (previous.y + point.y) / 2)
+        path.addQuadCurve(to: mid, control: previous)
+    }
+    if let last = points.last { path.addLine(to: last) }
+    return path
+}
+
+private func drawSeries(_ values: [Double], color: Color, top: Double, rect: CGRect, lineWidth: CGFloat, into context: inout GraphicsContext) {
+    guard values.count > 1 else { return }
+    let line = historyPath(values, top: top, in: rect)
+    var area = line
+    let lastX = rect.minX + rect.width * CGFloat(values.count - 1) / CGFloat(max(SystemStats.historyLength - 1, 1))
+    area.addLine(to: CGPoint(x: lastX, y: rect.maxY))
+    area.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+    area.closeSubpath()
+    context.fill(area, with: .linearGradient(Gradient(colors: [color.opacity(0.35), color.opacity(0)]),
+                                            startPoint: CGPoint(x: 0, y: rect.minY), endPoint: CGPoint(x: 0, y: rect.maxY)))
+    context.stroke(line, with: .color(color), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
+}
 
 struct Sparkline: View {
     let values: [Double]
@@ -10,23 +41,14 @@ struct Sparkline: View {
 
     var body: some View {
         let top = maxValue ?? max(values.max() ?? 1, 1)
-        Chart(Array(values.enumerated()), id: \.offset) { item in
-            AreaMark(x: .value("Time", item.offset), y: .value("Value", item.element))
-                .foregroundStyle(LinearGradient(colors: [tint.opacity(0.4), tint.opacity(0)], startPoint: .top, endPoint: .bottom))
-                .interpolationMethod(.catmullRom)
-            LineMark(x: .value("Time", item.offset), y: .value("Value", item.element))
-                .foregroundStyle(tint)
-                .lineStyle(StrokeStyle(lineWidth: 1.6, lineCap: .round))
-                .interpolationMethod(.catmullRom)
+        Canvas { context, size in
+            drawSeries(values, color: tint, top: top, rect: CGRect(origin: .zero, size: size).insetBy(dx: 0, dy: 1),
+                       lineWidth: 1.6, into: &context)
         }
-        .chartXAxis(.hidden)
-        .chartYAxis(.hidden)
-        .chartXScale(domain: 0...max(SystemStats.historyLength - 1, 1))
-        .chartYScale(domain: 0...top)
     }
 }
 
-/// Full chart for the dashboard: faint grid, trailing axis labels, optional second series.
+/// Full chart for the dashboard: faint dashed grid, trailing axis labels, optional second series.
 struct HistoryChart: View {
     struct Series: Identifiable {
         let id: String
@@ -40,28 +62,21 @@ struct HistoryChart: View {
 
     var body: some View {
         let top = maxValue ?? max(series.flatMap(\.values).max() ?? 1, 1) * 1.15
-        Chart {
-            ForEach(series) { s in
-                ForEach(Array(s.values.enumerated()), id: \.offset) { item in
-                    AreaMark(x: .value("Time", item.offset), y: .value(s.id, item.element), series: .value("Series", s.id))
-                        .foregroundStyle(LinearGradient(colors: [s.color.opacity(0.32), s.color.opacity(0)], startPoint: .top, endPoint: .bottom))
-                        .interpolationMethod(.catmullRom)
-                    LineMark(x: .value("Time", item.offset), y: .value(s.id, item.element), series: .value("Series", s.id))
-                        .foregroundStyle(s.color)
-                        .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
-                        .interpolationMethod(.catmullRom)
-                }
+        Canvas { context, size in
+            let labelWidth: CGFloat = 54
+            let plot = CGRect(x: 0, y: 6, width: max(size.width - labelWidth, 1), height: max(size.height - 12, 1))
+            for step in 0...2 {
+                let fraction = Double(step) / 2
+                let y = plot.maxY - plot.height * CGFloat(fraction)
+                var grid = Path()
+                grid.move(to: CGPoint(x: plot.minX, y: y))
+                grid.addLine(to: CGPoint(x: plot.maxX, y: y))
+                context.stroke(grid, with: .color(.secondary.opacity(0.25)), style: StrokeStyle(lineWidth: 0.5, dash: [2, 3]))
+                context.draw(Text(label(top * fraction)).font(.caption2).foregroundStyle(.tertiary),
+                             at: CGPoint(x: size.width, y: y), anchor: .trailing)
             }
-        }
-        .chartXAxis(.hidden)
-        .chartXScale(domain: 0...max(SystemStats.historyLength - 1, 1))
-        .chartYScale(domain: 0...top)
-        .chartYAxis {
-            AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { value in
-                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 3])).foregroundStyle(.quaternary)
-                AxisValueLabel {
-                    if let v = value.as(Double.self) { Text(label(v)).font(.caption2).foregroundStyle(.tertiary) }
-                }
+            for s in series {
+                drawSeries(s.values, color: s.color, top: top, rect: plot, lineWidth: 2, into: &context)
             }
         }
     }
@@ -79,7 +94,6 @@ struct UsageBar: View {
                 Capsule()
                     .fill(LinearGradient(colors: [tint.opacity(0.75), tint], startPoint: .leading, endPoint: .trailing))
                     .frame(width: max(height, proxy.size.width * min(max(fraction, 0), 1)))
-                    .animation(Motion.live, value: fraction)
             }
         }
         .frame(height: height)
@@ -236,10 +250,47 @@ struct EmptyStateView: View {
     }
 }
 
+/// Shows a page in its roomy form when it fits the height available, otherwise compact,
+/// and scrolls only if even the compact form doesn't fit. Only one form is laid out at a
+/// time: each form's natural height is measured while it's on screen and remembered.
+struct FittingLayout<Content: View>: View {
+    @ViewBuilder let content: (_ compact: Bool) -> Content
+    @State private var roomyHeight: CGFloat?
+    @State private var compactHeight: CGFloat?
+
+    var body: some View {
+        GeometryReader { proxy in
+            let available = proxy.size.height
+            let compact = (roomyHeight ?? 0) > available
+            let scrolls = compact && (compactHeight ?? 0) > available
+            if scrolls {
+                ScrollView { content(true) }
+            } else {
+                content(compact)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { height in
+                        if compact { compactHeight = height } else { roomyHeight = height }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
+        }
+    }
+}
+
 /// Small cache so list rows don't hit NSWorkspace for every redraw.
 @MainActor
 enum IconCache {
     private static var icons: [String: NSImage] = [:]
+
+    private static var appIcons: [pid_t: NSImage?] = [:]
+
+    /// Icon of a running app, or nil for background processes. Cached per process.
+    static func appIcon(pid: pid_t) -> NSImage? {
+        if let cached = appIcons[pid] { return cached }
+        let icon = NSRunningApplication(processIdentifier: pid)?.icon
+        appIcons[pid] = icon
+        return icon
+    }
 
     static func icon(for url: URL) -> NSImage {
         if let icon = icons[url.path] { return icon }

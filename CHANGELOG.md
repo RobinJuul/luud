@@ -2,6 +2,22 @@
 
 All notable changes to Luud are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.1.1] - 2026-10-18
+
+### Download
+
+Download **Luud-0.1.1.dmg**, open it and drag Luud to Applications, replacing the old version. The first time you open it, macOS may ask you to allow it under System Settings → Privacy & Security → **Open Anyway**.
+
+### Changed
+
+- **Smart Care** no longer starts as an empty page. Before you scan, it shows what the scan checks and your live disk and memory, and the results appear in the same cards afterwards. A hand-drawn "start here" points at the Scan button until your first scan, and Luud remembers when you last cleaned and how much it freed.
+- **Smart Care and the Live Dashboard fit the window** without scrolling. On smaller windows they switch to a compact layout, and only scroll if even that doesn't fit. The dashboard is now two columns.
+
+### Fixed
+
+- The Scan button shows a round focus ring instead of a square one, and the Smart Care page no longer jumps when the scan finishes.
+- The Live Dashboard uses about a third less CPU (36% of one core instead of 52%), and Smart Care about half (5% instead of 11%). Only the rings and headline numbers still animate; small values and the process list update in place.
+
 ## [0.1.0] - 2026-10-18
 
 The first release.
@@ -31,4 +47,5 @@ Luud isn't notarized yet. The first time you open it, macOS will block it: go to
 - Anything you might want back goes to the Trash; only things apps rebuild by themselves are deleted.
 - Admin tasks run only after the standard macOS password prompt.
 
+[0.1.1]: https://github.com/RobinJuul/luud/releases/tag/v0.1.1
 [0.1.0]: https://github.com/RobinJuul/luud/releases/tag/v0.1.0
