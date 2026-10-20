@@ -2,7 +2,22 @@
 
 All notable changes to Luud are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
-## [0.1.2] - 2026-10-20
+## [0.1.3] - 2026-10-20
+
+### Download
+
+Download **Luud-0.1.3.dmg**, open it and drag Luud to Applications, replacing the old version. Because this release is signed differently from earlier ones, macOS asks once more: allow Luud under System Settings → Privacy & Security → **Open Anyway**, and give it Full Disk Access again if you use that. From now on, updates keep those permissions.
+
+### Added
+
+- **Update notices.** Once a day Luud asks GitHub whether a newer version is out. If there is one, you get a notification, a notice with a **Download** button in the menu bar panel, and an Update badge on Settings. Settings → Updates shows your version and when Luud last checked, has **Check Now**, and lets you turn the checks off. The request carries nothing about you or your Mac.
+
+### Changed
+
+- **Every release is signed with the same certificate**, so macOS treats an update as the same app and keeps its permissions.
+- **Settings** is laid out in two columns so it fits without scrolling, and its sections sit directly on the page background.
+
+ - 2026-10-20
 
 ### Download
 
@@ -57,6 +72,7 @@ Luud isn't notarized yet. The first time you open it, macOS will block it: go to
 - Anything you might want back goes to the Trash; only things apps rebuild by themselves are deleted.
 - Admin tasks run only after the standard macOS password prompt.
 
+[0.1.3]: https://github.com/RobinJuul/luud/releases/tag/v0.1.3
 [0.1.2]: https://github.com/RobinJuul/luud/releases/tag/v0.1.2
 [0.1.1]: https://github.com/RobinJuul/luud/releases/tag/v0.1.1
 [0.1.0]: https://github.com/RobinJuul/luud/releases/tag/v0.1.0

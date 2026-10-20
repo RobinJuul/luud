@@ -136,63 +136,104 @@ struct SettingsView: View {
     @AppStorage(SettingsKey.menuBarMode) private var menuBarMode = MenuBarMode.cpuAndMemory.rawValue
     @AppStorage(SettingsKey.lowDiskAlerts) private var lowDiskAlerts = true
     @AppStorage(SettingsKey.lowDiskThresholdGB) private var lowDiskThresholdGB = 15
+    @AppStorage(UpdateChecker.enabledKey) private var checkForUpdates = true
+    @ObservedObject private var updates = UpdateChecker.shared
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
 
     var body: some View {
         VStack(spacing: 0) {
             PageHeader(section: .settings, subtitle: "Menu bar, alerts and permissions") { EmptyView() }
-            Form {
-                SwiftUI.Section("General") {
-                    Toggle("Open at login", isOn: $launchAtLogin)
-                        .onChange(of: launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }
-                    if let loginError {
-                        Text(loginError).font(.caption).foregroundStyle(.orange)
+            // Two columns so the whole page fits without scrolling.
+            HStack(alignment: .top, spacing: 0) {
+                Form {
+                    SwiftUI.Section("General") {
+                        Toggle("Open at login", isOn: $launchAtLogin)
+                            .onChange(of: launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }
+                        if let loginError {
+                            Text(loginError).font(.caption).foregroundStyle(.orange)
+                        }
+                        Picker("Menu bar shows", selection: $menuBarMode) {
+                            ForEach(MenuBarMode.allCases) { Text($0.title).tag($0.rawValue) }
+                        }
                     }
-                    Picker("Menu bar shows", selection: $menuBarMode) {
-                        ForEach(MenuBarMode.allCases) { Text($0.title).tag($0.rawValue) }
+                    SwiftUI.Section("Updates") {
+                        if let update = updates.available {
+                            UpdateNotice(version: update.version) { updates.openDownloadPage() }
+                        }
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Luud \(updates.currentVersion)")
+                                Text(updateStatus).font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            if updates.isChecking { ProgressView().controlSize(.small) }
+                            Button("Check Now") { Task { await updates.check() } }
+                                .disabled(updates.isChecking)
+                        }
+                        Toggle(isOn: $checkForUpdates) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Check for updates automatically")
+                                Text("Once a day Luud asks GitHub for the latest release. Nothing about you or your Mac is sent.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
                     }
                 }
-                SwiftUI.Section("Alerts") {
-                    Toggle("Notify me when the startup disk is almost full", isOn: $lowDiskAlerts)
-                    Stepper("Alert below \(lowDiskThresholdGB) GB free", value: $lowDiskThresholdGB, in: 5...100, step: 5)
-                        .disabled(!lowDiskAlerts)
-                }
-                SwiftUI.Section("Apple Intelligence") {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Label(aiStatus, systemImage: aiReady ? "checkmark.circle.fill" : "exclamationmark.circle")
-                                .foregroundStyle(aiReady ? Palette.network : .orange)
-                            Text("Used by the Explain button to describe files and folders. It runs on your Mac; nothing is sent anywhere.")
+                .formStyle(.grouped)
+                .scrollContentBackground(.hidden)   // cards float on the page backdrop, no solid sheet behind them
+                Form {
+                    SwiftUI.Section("Apple Intelligence") {
+                        HStack(alignment: .top) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Label(aiStatus, systemImage: aiReady ? "checkmark.circle.fill" : "exclamationmark.circle")
+                                    .foregroundStyle(aiReady ? Palette.network : .orange)
+                                Text("Used by the Explain button to describe files and folders. It runs on your Mac; nothing is sent anywhere.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            Spacer()
+                            if ItemExplainer.isCompiledIn && !aiReady {
+                                Button("Open Settings") { SystemSettings.openAppleIntelligence() }
+                            }
+                        }
+                        if ItemExplainer.canBeTurnedOn {
+                            Text("In System Settings, open Apple Intelligence & Siri and turn on Apple Intelligence. It downloads its model the first time, which needs several gigabytes of free space and can take a while. Your Mac's language and Siri's language need to be the same supported language.")
                                 .font(.caption).foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        Spacer()
-                        if ItemExplainer.isCompiledIn && !aiReady {
-                            Button("Open Settings") { SystemSettings.openAppleIntelligence() }
+                    }
+                    SwiftUI.Section("Permissions") {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text("Full Disk Access")
+                                Text("Needed to scan the Trash, Mail attachments and some app data.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button("Open Settings") { SystemSettings.openFullDiskAccess() }
                         }
                     }
-                    if ItemExplainer.canBeTurnedOn {
-                        Text("In System Settings, open Apple Intelligence & Siri and turn on Apple Intelligence. It downloads its model the first time, which needs several gigabytes of free space and can take a while. Your Mac's language and Siri's language need to be the same supported language.")
-                            .font(.caption).foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                    SwiftUI.Section("Alerts") {
+                        Toggle("Notify me when the startup disk is almost full", isOn: $lowDiskAlerts)
+                        Stepper("Alert below \(lowDiskThresholdGB) GB free", value: $lowDiskThresholdGB, in: 5...100, step: 5)
+                            .disabled(!lowDiskAlerts)
                     }
                 }
-                SwiftUI.Section("Permissions") {
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text("Full Disk Access")
-                            Text("Needed to scan the Trash, Mail attachments and some app data.")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Button("Open Settings") { SystemSettings.openFullDiskAccess() }
-                    }
-                }
+                .formStyle(.grouped)
+                .scrollContentBackground(.hidden)   // cards float on the page backdrop, no solid sheet behind them
             }
-            .formStyle(.grouped)
-            .frame(maxWidth: 640)
+            .frame(maxWidth: 1100)
         }
+    }
+
+    private var updateStatus: String {
+        if updates.available != nil {
+            return updates.lastChecked.map { "Checked \(Fmt.relativeDate($0))" } ?? "A newer version is available"
+        }
+        if let error = updates.lastError { return error }
+        if let checked = updates.lastChecked { return "Up to date · checked \(Fmt.relativeDate(checked))" }
+        return checkForUpdates ? "Not checked yet" : "Automatic checks are off"
     }
 
     private var aiReady: Bool { ItemExplainer.unavailableReason == nil }

@@ -6,6 +6,7 @@ struct MainView: View {
     @EnvironmentObject private var stats: SystemStats
     @EnvironmentObject private var cleanup: CleanupModel
     @EnvironmentObject private var uninstaller: UninstallerModel
+    @ObservedObject private var updates = UpdateChecker.shared
     @State private var columns: NavigationSplitViewVisibility = .all
     @State private var headerActive = false
 
@@ -58,6 +59,7 @@ struct MainView: View {
         case .dashboard: Text(Fmt.percent(stats.cpu)).monospacedDigit()
         case .cleanup where cleanup.hasScanned && cleanup.totalSize > 0: Text(Fmt.bytes(cleanup.totalSize))
         case .uninstaller where uninstaller.hasLoaded && !uninstaller.unusedApps.isEmpty: Text("\(uninstaller.unusedApps.count)")
+        case .settings where updates.available != nil: Text("Update")
         default: nil
         }
     }
